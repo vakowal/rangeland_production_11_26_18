@@ -71,7 +71,7 @@ def execute(args):
     shutil.copyfile(graz_file, os.path.join(args[u'century_dir'], 'graz_orig.100'))
     for schedule in schedule_list:
         label = os.path.basename(schedule)[:-4]
-        copy_name = label + '_orig.100'
+        copy_name = label + '_orig.sch'
         shutil.copyfile(schedule, os.path.join(args[u'century_dir'], copy_name))
 
     # run CENTURY for spin-up for each grass type up to start_year and start_month
@@ -217,7 +217,7 @@ def execute(args):
             # replace schedule files used by CENTURY with original files
             os.remove(schedule)
             label = os.path.basename(schedule)[:-4]
-            copy_name = label + '_orig.100'
+            copy_name = label + '_orig.sch'
             shutil.copyfile(os.path.join(args[u'century_dir'], copy_name), schedule)
             os.remove(os.path.join(args[u'century_dir'], copy_name))
 
