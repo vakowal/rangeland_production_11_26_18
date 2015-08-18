@@ -29,32 +29,40 @@ import freer_param as FreerParam
 def execute(args):
     """This function invokes the forage model given user inputs.
 
-        args - a python dictionary with the following possible entries:
+        args - a python dictionary with the following required entries:
         args['latitude'] - site latitude in degrees.  If south of the equator,
-            this should be negative (required)
+            this should be negative
         args['prop_legume'] - proportion of the pasture by weight that is
-            legume, ranging from 0-1 (required)
+            legume, ranging from 0-1
         args['breed'] - breed of livestock, assumed to apply to the entire
-            herd.  See documentation for allowable values. (required)
-        args['steepness'] - site steepness, ranging from 1 to 2 (required)
+            herd.  See documentation for allowable values.
+        args['steepness'] - site steepness, ranging from 1 to 2
         args['DOY'] - initial day of the year, an integer ranging from 1:365
-            (required)
-        args['start_year'] - initial year, an integer (required)
+        args['start_year'] - initial year, an integer
         args['start_month'] - initial month, an integer ranigng from 1:12
-            corresponding to January:December (required)
+            corresponding to January:December
         args['num_months'] - number of months to run the simulation
         args['mgmt_threshold'] - management threshold, the percent of initial
             biomass that must remain (0:1)
         args['century_dir'] - local file directory containing the executable
             and initial parameter files to run the CENTURY ecosystem model
+        args['outdir'] - local file directory where intermediate and output
+            files will be saved
         args['template_level'] - template grazing level.  # TODO replace this
         args['fix_file'] - file basename of CENTURY fix file, which resides in
             the directory args['century_dir']
         args['user_define_protein'] - boolean (0: false, 1: true).  Should
-            crude protein of forage be supplied by the user?  If false, it is
-            calculated from CENTURY outputs (required)
-        args['user_define_digestibility'] - should digestibility be supplied by
-            the user? If false, it is calculated from CENTURY outputs
+            crude protein of forage be drawn from forage input supplied by the
+            user?  If false, it is calculated from CENTURY outputs
+        args['user_define_digestibility'] - boolean (0: false, 1: true). Should
+            digestibility of forage be drawn from forage input supplied by the
+            user?  If false, it is calculated from CENTURY outputs
+        args['herbivore_csv'] - an absolute path to a csv file containing all
+            necessary descriptors of the herbivore herd
+        args['grass_csv'] - an absolute path to a csv file containing all
+            necessary descriptors of the grass available as forage
+        args['supp_csv'] - an absolute path to a csv file containing all
+            necessary descriptors of supplemental feed (optional)
 
         returns nothing."""
 
@@ -96,7 +104,7 @@ def execute(args):
         hist_output = grass['label'] + '_hist'
         cent.write_century_bat(args[u'century_dir'], hist_bat, hist_schedule,
                                hist_output, args[u'fix_file'],
-                               args[u'outvars'])
+                               'outvars.txt')
         # write CENTURY bat for extend simulation
         extend_bat = os.path.join(args[u'century_dir'],
                                   (grass['label'] + '.bat'))
@@ -104,8 +112,21 @@ def execute(args):
         output = grass['label']
         extend = grass['label'] + '_hist'
         cent.write_century_bat(args[u'century_dir'], extend_bat, schedule,
-                               output, args[u'fix_file'], args[u'outvars'],
+                               output, args[u'fix_file'], 'outvars.txt',
                                extend)
+    supp_available = 0
+    if 'supp_csv' in args.keys():
+        supp_list = (pandas.read_csv(args[u'supp_csv'])).to_dict(
+            orient='records')
+        assert len(supp_list) == 0, "Only one supplement type is allowed"
+        supp_info = supp_list[0]
+        supp = forage.Supplement(Fparam, supp_info['digestibility'],
+                                 supp_info['kg_per_day'], supp_info['M_per_d'],
+                                 supp_info['ether_extract'],
+                                 supp_info['crude_protein'],
+                                 supp_info['rumen_degradability'])
+        if supp.DMO > 0.:
+            supp_available = 1
 
     # make a copy of the original graz params and schedule file
     shutil.copyfile(graz_file, os.path.join(args[u'century_dir'],
@@ -130,13 +151,6 @@ def execute(args):
 
     total_SD = forage.calc_total_stocking_density(herbivore_list)
     site = forage.SiteInfo(total_SD, args[u'steepness'], args[u'latitude'])
-    # Rubanza et al 2005  TODO get supp info from user inputs
-    supp = forage.Supplement(FParam, 0.643, 0, 8.87, 0.031, 0.181, 0.5)
-    if supp.DMO > 0.:
-        supp_available = 1
-    else:
-        supp_available = 0
-
     try:
         for step in xrange(args[u'num_months']):
             month = args[u'start_month'] + step
@@ -293,25 +307,24 @@ def execute(args):
             os.remove(os.path.join(args[u'century_dir'], copy_name))
 
 args = {
-    'latitude': 0.083,  # degrees (if south of equator, this should be negative)
+    'latitude': 0.083,
     'prop_legume': 0.0,
     'breed': 'Brahman',  # see documentation for allowable breeds; assumed to apply to all animal classes
-    'steepness': 1.,  # steepness of site: between 1 and 2
-    'DOY': 1,  # initial day of the year
+    'steepness': 1.,
+    'DOY': 1,
     'start_year': 2013,
-    'start_month': 1,   # 1:12, corresponding to January:December
+    'start_month': 1,
     'num_months': 12,
-    'mgmt_threshold': 0.5,  # % of all initial biomass that must remain
+    'mgmt_threshold': 0.5,
     'century_dir': 'C:\Users\Ginger\Dropbox\NatCap_backup\Forage_model\CENTURY4.6\Century46_PC_Jan-2014',
     'outdir': "C:\\Users\\Ginger\\Documents\\Python\\Output",
     'template_level': 'GL',
     'fix_file': 'drytrpfi.100',
-    'outvars': 'outvars.txt',  # TODO this doesn't need to be input
-    'user_define_protein': 0,  # TODO replace this with optional input for protein
-    'user_define_digestibility': 0,  # TODO replace this with optional input for digestibility
-    'calc_DMD_from_protein': 1,  # calculate digestibility from protein?
+    'user_define_protein': 0,
+    'user_define_digestibility': 0,
     'herbivore_csv': "C:\Users\Ginger\Dropbox\NatCap_backup\Forage_model\Forage_model\model_inputs\herbivores.csv",
     'grass_csv': "C:\Users\Ginger\Dropbox\NatCap_backup\Forage_model\Forage_model\model_inputs\grass.csv",
+    'supp_csv': "C:\Users\Ginger\Dropbox\NatCap_backup\Forage_model\Forage_model\model_inputs\Rubanza_et_al_2005_supp.csv"
 }
 
 if __name__ == "__main__":
