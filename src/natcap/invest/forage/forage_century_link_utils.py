@@ -329,7 +329,7 @@ def convert_units(g_per_m2, cell_size_ha):
     return kg
     
 def write_century_bat(century_dir, century_bat, schedule, output, fix_file,
-    outvars, extend = None):
+                      outvars, extend=None):
     """Write the batch file to run CENTURY"""
     
     if schedule[-4:] == '.sch':
@@ -431,20 +431,20 @@ def find_target_month(add_event, schedule, empirical_date, n_years):
     # find year and month of empirical measurement date relative to the block:
     # this is how they are specified in the schedule file
     relative_empirical_year = int(math.floor(empirical_date) - start_year + 1)
-    empirical_month = int(round((empirical_date - float(math.floor(empirical_date)))
-        * 12))
+    empirical_month = int(round((empirical_date - float(math.floor(
+                            empirical_date))) * 12))
     
     # find months where grazing took place prior to empirical date
     graz_schedule = read_graz_level(schedule)
     block = graz_schedule.loc[(graz_schedule["block_end_year"] == last_year), 
-        ['relative_year', 'month', 'grazing_level']]
+                              ['relative_year', 'month', 'grazing_level']]
     empirical_year = block.loc[(block['relative_year'] ==
-        relative_empirical_year), ]
+                               relative_empirical_year), ]
     empirical_year = empirical_year.loc[(empirical_year['month'] <=
-        empirical_month), ]
+                                        empirical_month), ]
     prev_year = block.loc[(block['relative_year'] < relative_empirical_year), ]
     prev_year = prev_year.loc[(prev_year['relative_year'] >=
-        (relative_empirical_year - n_years)), ]
+                              (relative_empirical_year - n_years)), ]
     history = prev_year.append(empirical_year)
     
     # fill the grazing history with months where no grazing event was scheduled
@@ -485,7 +485,8 @@ def find_target_month(add_event, schedule, empirical_date, n_years):
         target_dict['prev_event_month'] = prev_event_month
     return target_dict    
     
-def modify_schedule(schedule, add_event, target_dict, graz_level, outdir, suffix):
+def modify_schedule(schedule, add_event, target_dict, graz_level, outdir,
+                    suffix):
     """Add or remove a grazing event in the target month and year from the
     schedule file used by CENTURY."""
     
