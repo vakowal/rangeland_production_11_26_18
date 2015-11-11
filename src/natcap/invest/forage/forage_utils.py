@@ -274,6 +274,9 @@ class HerbivoreClass:
             self.SRW = self.SRW * 1.4
         if self.sex == 'castrate':
             self.SRW = self.SRW * 1.2
+        if self.sex == 'herd_average':
+            self.SRW = (self.SRW*0.6323) + (self.SRW*0.1564) + \
+                        (self.SRW*0.3071)
         self.Nmax = -1.
         self.N = -1.
         self.Z = -1.
@@ -765,7 +768,7 @@ def calc_diet_intermediates(FParam, diet, supp, herb_class, site, prop_legume,
           ((math.pi / 40.) * math.sin(2. * math.pi * (DOY / 365.)))) *
           M_per_Dforage)  # eq 38, 39, 40 eff. energy use for growth from forage
     Emove = FParam.CM16 * site.D * herb_class.W
-    Egraze = FParam.CM6 * herb_class.W * diet.If * (FParam.CM7 - diet.DMDf) +
+    Egraze = FParam.CM6 * herb_class.W * diet.If * (FParam.CM7 - diet.DMDf) + \
              Emove
     Emetab = FParam.CM2 * herb_class.W ** 0.75 * max(math.exp(-FParam.CM3 *
              herb_class.A), FParam.CM4) * (1. + FParam.CM5 * prop_milk)
@@ -773,6 +776,8 @@ def calc_diet_intermediates(FParam, diet, supp, herb_class, site, prop_legume,
     MEm = (Emetab + Egraze) / km + FParam.CM1 * MEItotal
     if herb_class.sex == 'castrate' or herb_class.sex == 'entire_m':
         MEm = MEm * 1.15
+    if herb_class.sex == 'herd_average':
+        MEm = MEm * 1.055
     diet_interm.L = (MEItotal / MEm) - 1.
     MEl = 0.
     if herb_class.sex == 'lac_female':
