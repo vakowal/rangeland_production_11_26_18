@@ -92,6 +92,8 @@ def execute(args):
     results_dict = {'step': [], 'year': [], 'month': []}
     for h_class in herbivore_list:
         results_dict[h_class.label + '_kg'] = []
+        results_dict[h_class.label + '_gain_kg'] = []
+        results_dict[h_class.label + '_offtake'] = []
         if h_class.sex == 'lac_female':
             results_dict['milk_prod_kg'] = []
     for grass in grass_list:
@@ -307,6 +309,10 @@ def execute(args):
                                   forage.find_days_per_step())
 
                 results_dict[herb_class.label + '_kg'].append(herb_class.W)
+                results_dict[herb_class.label + '_gain_kg'].append(
+                                                                  delta_W_step)
+                results_dict[herb_class.label + '_offtake'].append(
+                                                               diet.If)
                 if herb_class.sex == 'lac_female':
                     results_dict['milk_prod_kg'].append(milk_kg_day * 30.)
 
