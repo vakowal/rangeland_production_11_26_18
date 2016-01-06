@@ -8,7 +8,6 @@ from operator import attrgetter
 
 global _time_step
 global _time_divisor_dict
-global _SRW_dict
 global _breed_dict
 
 def set_time_step(step):
@@ -20,19 +19,6 @@ _time_divisor_dict = {
     u'month': 30.4,
     u'week': 7,
     u'day': 1,
-}
-
-# SRW dict: table 1.12 from CSIRO 1990, giving standard reference weight
-# (SRW) for various breeds of cattle
-_SRW_dict = {
-    700: ['Chianina'],
-    650: ['Charolais', 'Maine Anjou', 'Simmental'],
-    550: ['Angus', 'Blond dAquitane', 'Brahman', 'BrahmanxHereford', 'Hereford',
-         'Murray Grey', 'Limousin', 'Lincoln Red', 'Friesian', 'South Devon',
-         'Boran'],
-    500: ['Shorthorn', 'Red Devon', 'Galloway', 'Red Poll'],
-    450: ['Ayrshire', 'Guernsey', 'AMZ', 'Sahiwal'],
-    400: ['Jersey'],
 }
 
 # Breed dict: translate specific breed to more general (SRW is known for specific
@@ -56,20 +42,6 @@ def get_general_breed(specific_breed):
             general_breed = key
             matched = True
             return general_breed
-    if not matched:
-        er = "Error: breed must match allowable values"
-        raise ValueError(er)
-
-def get_SRW(specific_breed):
-    """Get the general breed category (B. indicus, B. taurus, taurus X indicus)
-    from the more specific breed supplied by the user."""
-
-    matched = False
-    for key in _SRW_dict:
-        if specific_breed in _SRW_dict[key]:
-            SRW = key
-            matched = True
-            return SRW
     if not matched:
         er = "Error: breed must match allowable values"
         raise ValueError(er)
@@ -253,18 +225,15 @@ class HerbivoreClass:
     """Herbivore class for tier 2 containing attributes and methods
     characteristic of a single herbivore type."""
 
-    def __init__(self, FParam, breed, weight, sex, age, stocking_density,
-                 label=None, Wbirth=None, SRW=None):
+    def __init__(self, FParam, breed, weight, sex, age, stocking_density, SRW,
+                 label=None, Wbirth=None):
         self.label = label
         self.stocking_density = stocking_density  # num animals per ha
         if Wbirth is None:
             self.Wbirth = 34.7  # weight at birth
         else:
             self.Wbirth = Wbirth
-        if SRW is None:
-            self.SRW = get_SRW(breed)  # standard reference weight: mature animal in median condition
-        else:
-            self.SRW = SRW
+        self.SRW = SRW
         self.Wprev = weight  # arbitrary weight previous to initial weight
         self.W = weight
         self.sex = sex
@@ -285,6 +254,20 @@ class HerbivoreClass:
                                                     self.Wprev,
                                                     self.W,
                                                     self.BC)
+
+    def check_BC(self, BC):
+        """Check model-calculated relative condition against user-supplied
+        relative condition, and if they differ by at least 10%, raise an
+        error."""
+        
+        difference_BC = self.BC - BC
+        if abs(difference_BC) >= (BC * 0.1):
+            raise Exception("""Error: supplied relative condition differs from
+                 calculated condition by more than 10%. Please edit
+                 inputs for standard reference weight, age, weight or estimated
+                 relative condition.""")
+                 # Supplied relative condition: %f.  Calculated relative
+                 # condition: %f. % (BC, calc_BC)
 
     def update(self, FParam, delta_weight=0, delta_time=0):
         """Update age and weight of a herbivore class after a single time step

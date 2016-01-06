@@ -80,10 +80,13 @@ def execute(args):
     for h_class in herbivore_input:
         herd = forage.HerbivoreClass(FParam, args[u'breed'], h_class['weight'],
                                      h_class['sex'], h_class['age'],
-                                     h_class['stocking_density'],
-                                     label=h_class['label'], Wbirth=24,
-                                     SRW=550)
-        herd.update(FParam, 0, 0)
+                                     h_class['stocking_density'], 550,
+                                     label=h_class['label'], Wbirth=24)
+        herd.update(FParam)
+        BC = 1  # TODO get optional BC from user
+        if BC:
+            herd.check_BC(BC)
+        
         herbivore_list.append(herd)
 
     grass_list = (pandas.read_csv(args[u'grass_csv'])).to_dict(
