@@ -243,6 +243,9 @@ class HerbivoreClass:
             self.SRW = self.SRW * 1.4
         if self.sex == 'castrate':
             self.SRW = self.SRW * 1.2
+        if self.sex == 'herd_average':
+            self.SRW = (self.SRW*0.6323) + (self.SRW*0.1564) + \
+                        (self.SRW*0.3071)
         self.Nmax = -1.
         self.N = -1.
         self.Z = -1.
@@ -756,6 +759,8 @@ def calc_diet_intermediates(FParam, diet, supp, herb_class, site, prop_legume,
     MEm = (Emetab + Egraze) / km + FParam.CM1 * MEItotal
     if herb_class.sex == 'castrate' or herb_class.sex == 'entire_m':
         MEm = MEm * 1.15
+    if herb_class.sex == 'herd_average':
+        MEm = MEm * 1.055
     diet_interm.L = (MEItotal / MEm) - 1.
     MEl = 0.
     if herb_class.sex == 'lac_female':

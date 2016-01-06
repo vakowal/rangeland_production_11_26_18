@@ -338,14 +338,7 @@ def write_century_bat(century_dir, century_bat, schedule, output, fix_file,
         output = output[:-4]
     
     with open(os.path.join(century_dir, century_bat), 'wb') as file:
-        file.write('erase ' + output + '.bin\n')
-        file.write('erase ' + output + '.lis\n\n')
-        
-        file.write('copy fix.100 fix_orig.100\n')
-        file.write('erase fix.100\n\n')
-        
         file.write('copy ' + fix_file + ' fix.100\n')
-        file.write('erase ' + output + '_log.txt\n\n')
         
         if extend is not None:
             file.write('century_46 -s ' + schedule + ' -n ' + output + ' -e ' +
@@ -357,8 +350,6 @@ def write_century_bat(century_dir, century_bat, schedule, output, fix_file,
             '\n\n')
         
         file.write('erase fix.100\n')
-        file.write('copy fix_orig.100 fix.100\n')
-        file.write('erase fix_orig.100\n')
 
 def check_schedule(schedule, n_years, empirical_date):
     """Check that the schedule file used to produce CENTURY output can be

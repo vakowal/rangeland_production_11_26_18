@@ -1,4 +1,4 @@
-# Tier 2 forage model
+# Tier 2 rangeland production model
 # Ginger Kowal for the Natural Capital Project
 
 # forage production by CENTURY
@@ -12,7 +12,7 @@
 # livestock equations adapted from GRAZPLAN
 # more info:
 # Freer, M, A. D Moore, and J. R Donnelly. The GRAZPLAN Animal Biology Model
-# forSheep and Cattle and the GrazFeed Decision Support Tool. Canberra, ACT
+# for Sheep and Cattle and the GrazFeed Decision Support Tool. Canberra, ACT
 # Australia: CSIRO Plant Industry, 2012.
 
 import os
@@ -95,6 +95,8 @@ def execute(args):
     results_dict = {'step': [], 'year': [], 'month': []}
     for h_class in herbivore_list:
         results_dict[h_class.label + '_kg'] = []
+        results_dict[h_class.label + '_gain_kg'] = []
+        results_dict[h_class.label + '_offtake'] = []
         if h_class.sex == 'lac_female':
             results_dict['milk_prod_kg'] = []
     for grass in grass_list:
@@ -110,7 +112,7 @@ def execute(args):
         else:
             er = "Error: schedule file not found"
             raise Exception(er)
-        # write CENTURY bat for spin-up simulation
+        # write CENTURY batch file for spin-up simulation
         hist_bat = os.path.join(args[u'input_dir'], (grass['label'] +
                                 '_hist.bat'))
         hist_schedule = grass['label'] + '_hist.sch'
@@ -179,7 +181,8 @@ def execute(args):
         stdout, stderr = p.communicate()
 
         # save copies of CENTURY outputs, but remove from CENTURY dir
-        intermediate_dir = os.path.join(args['outdir'], 'CENTURY_outputs_spin_up')
+        intermediate_dir = os.path.join(args['outdir'],
+                                        'CENTURY_outputs_spin_up')
         if not os.path.exists(intermediate_dir):
             os.makedirs(intermediate_dir)
         to_move = century_outputs + spin_up_outputs
@@ -190,8 +193,11 @@ def execute(args):
             
     total_SD = forage.calc_total_stocking_density(herbivore_list)
     site = forage.SiteInfo(total_SD, args[u'steepness'], args[u'latitude'])
+    threshold_exceeded = 0
     try:
         for step in xrange(args[u'num_months']):
+            if threshold_exceeded:
+                break
             month = args[u'start_month'] + step
             if month > 12:
                 year = args[u'start_year'] + 1
@@ -288,8 +294,9 @@ def execute(args):
 
                 # is amount of forage removed above the management threshold?
                 if (total_biomass - total_intake_step) < threshold_biomass:
-                    er = "Forage consumed violates management threshold"
-                    raise Exception(er)
+                    print "Forage consumed violates management threshold"
+                    threshold_exceeded = 1
+                    break
 
                 if herb_class.sex == 'lac_female':
                     milk_production = forage.check_milk_production(FParam,
@@ -305,6 +312,10 @@ def execute(args):
                                   forage.find_days_per_step())
 
                 results_dict[herb_class.label + '_kg'].append(herb_class.W)
+                results_dict[herb_class.label + '_gain_kg'].append(
+                                                                  delta_W_step)
+                results_dict[herb_class.label + '_offtake'].append(
+                                                               diet.If)
                 if herb_class.sex == 'lac_female':
                     results_dict['milk_prod_kg'].append(milk_kg_day * 30.)
 
@@ -362,36 +373,3 @@ def execute(args):
         filled_dict = forage.fill_dict(results_dict, 'NA')
         df = pandas.DataFrame(filled_dict)
         df.to_csv(os.path.join(args['outdir'], 'summary_results.csv'))
-
-args = {
-    'latitude': 0.083,
-    'prop_legume': 0.0,
-    'breed': 'Brahman',  # see documentation for allowable breeds; assumed to apply to all animal classes
-    'steepness': 1.,
-    'DOY': 1,
-    'start_year': 2014,
-    'start_month': 7,
-    'num_months': 11,
-    'mgmt_threshold': 0.1,
-    'century_dir': 'C:/Users/Ginger/Dropbox/NatCap_backup/Forage_model/CENTURY4.6/Century46_PC_Jan-2014',
-    'outdir': "C://Users//Ginger//Documents//Python//Output",
-    'template_level': 'GL',
-    'fix_file': 'drytrpfi.100',
-    'user_define_protein': 1,
-    'user_define_digestibility': 1,
-    'herbivore_csv': "C:/Users/Ginger/Dropbox/NatCap_backup/Forage_model/Forage_model/model_inputs/herbivores.csv",
-    'grass_csv': "C:/Users/Ginger/Dropbox/NatCap_backup/Forage_model/Forage_model/model_inputs/grass_.64_.1.csv",
-    'supp_csv': "C:/Users/Ginger/Dropbox/NatCap_backup/Forage_model/Forage_model/model_inputs/Rubanza_et_al_2005_supp.csv",
-    'input_dir': "C:/Users/Ginger/Dropbox/NatCap_backup/Forage_model/CENTURY4.6/Kenya/input",
-}
-
-if __name__ == "__main__":
-    input_dir = "C:/Users/Ginger/Dropbox/NatCap_backup/Forage_model/Forage_model/model_inputs"
-    outer_dir = "C:/Users/Ginger/Dropbox/NatCap_backup/Forage_model/CENTURY4.6/Output/Stocking_density_test"
-    for idx in [1, 2, 3, 4]:
-        args['herbivore_csv'] = os.path.join(input_dir,
-                                             "herbivores_%d.csv" % idx)
-        args['outdir'] = os.path.join(outer_dir, "outputs_%d" % idx)
-        if not os.path.exists(args['outdir']):
-            os.makedirs(args['outdir'])
-        execute(args)
