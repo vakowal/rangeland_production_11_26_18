@@ -82,8 +82,8 @@ def execute(args):
                                      label=h_class['label'], Wbirth=24)
         herd.update()
         BC = 1  # TODO get optional BC from user
-        if BC:
-            herd.check_BC(BC)
+        # if BC:
+            # herd.check_BC(BC)
         
         herbivore_list.append(herd)
 
@@ -271,20 +271,20 @@ def execute(args):
                 diet_interm = forage.calc_diet_intermediates(diet,
                                 supp, herb_class, site, args[u'prop_legume'],
                                 args[u'DOY'])
-                reduced_max_intake = forage.check_max_intake(diet, diet_interm,
-                                                             herb_class,
-                                                             max_intake)
-                if reduced_max_intake < max_intake:
-                    print "## selecting diet with reduced intake ##"
-                    print "reduced max intake: %f" % reduced_max_intake
-                    diet = forage.diet_selection_t2(ZF, args[u'prop_legume'],
-                                                    supp_available, supp,
-                                                    reduced_max_intake,
-                                                    herb_class.FParam,
-                                                    adj_forage)
-                    diet_interm = forage.calc_diet_intermediates(diet,
-                                    supp, herb_class, site,
-                                    args[u'prop_legume'], args[u'DOY'])
+                if herb_class.type != 'hindgut_fermenter':
+                    reduced_max_intake = forage.check_max_intake(diet,
+                                                                 diet_interm,
+                                                                 herb_class,
+                                                                 max_intake)
+                    if reduced_max_intake < max_intake:
+                        print "## selecting diet with reduced intake ##"
+                        print "reduced max intake: %f" % reduced_max_intake
+                        diet = forage.diet_selection_t2(ZF,
+                                                        args[u'prop_legume'],
+                                                        supp_available, supp,
+                                                        reduced_max_intake,
+                                                        herb_class.FParam,
+                                                        adj_forage)
 
                 total_intake_step += (forage.convert_daily_to_step(diet.If) *
                                       herb_class.stocking_density)
@@ -294,25 +294,29 @@ def execute(args):
                     print "Forage consumed violates management threshold"
                     threshold_exceeded = 1
                     break
-
-                if herb_class.sex == 'lac_female':
-                    milk_production = forage.check_milk_production(
+                    
+                if herb_class.type in ['B_indicus', 'B_taurus',
+                                       'indicus_x_taurus', 'sheep']:
+                    diet_interm = forage.calc_diet_intermediates(diet,
+                                            supp, herb_class, site,
+                                            args[u'prop_legume'], args[u'DOY'])
+                    if herb_class.sex == 'lac_female':
+                        milk_production = forage.check_milk_production(
                                                              herb_class.FParam,
                                                                    diet_interm)
-                    milk_kg_day = forage.calc_milk_yield(milk_production)
+                        milk_kg_day = herb_class.calc_milk_yield(
+                                                               milk_production)
+                    delta_W = forage.calc_delta_weight(diet, diet_interm,
+                                                       supp, herb_class)
 
-                delta_W = forage.calc_delta_weight(diet, diet_interm,
-                                                   supp, herb_class)
-
-                delta_W_step = forage.convert_daily_to_step(delta_W)
-                herb_class.update(delta_weight=delta_W_step,
-                                  delta_time=forage.find_days_per_step())
+                    delta_W_step = forage.convert_daily_to_step(delta_W)
+                    herb_class.update(delta_weight=delta_W_step,
+                                      delta_time=forage.find_days_per_step())
 
                 results_dict[herb_class.label + '_kg'].append(herb_class.W)
                 results_dict[herb_class.label + '_gain_kg'].append(
                                                                   delta_W_step)
-                results_dict[herb_class.label + '_offtake'].append(
-                                                               diet.If)
+                results_dict[herb_class.label + '_offtake'].append(diet.If)
                 if herb_class.sex == 'lac_female':
                     results_dict['milk_prod_kg'].append(milk_kg_day * 30.)
 

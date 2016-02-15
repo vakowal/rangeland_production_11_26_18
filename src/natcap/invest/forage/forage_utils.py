@@ -781,9 +781,13 @@ def calc_diet_intermediates(diet, supp, herb_class, site, prop_legume,
         diet_interm.Pl = herb_class.FParam.CL15 * (diet_interm.MP2 /
                          herb_class.FParam.CL6)
     # eq 46, protein req for maintenance:
-    Pm = (herb_class.FParam.CM12 * math.log(herb_class.W) -
-          herb_class.FParam.CM13 + herb_class.FParam.CM10 * (diet.If +
-          diet.Is) + herb_class.FParam.CM14 * herb_class.W ** 0.75)
+    if herb_class.type in ['B_indicus', 'B_taurus', 'indicus_x_taurus']:
+        Pm = (herb_class.FParam.CM12 * math.log(herb_class.W) - 
+              herb_class.FParam.CM13 + herb_class.FParam.CM10 * (diet.If +
+              diet.Is) + herb_class.FParam.CM14 * herb_class.W ** 0.75)
+    else:
+        Pm = (herb_class.FParam.CM12 * herb_class.W + herb_class.FParam.CM13 +
+              herb_class.FParam.CM10 * (diet.If + diet.Is))
     RF = 1. + herb_class.FParam.CRD7 * (site.latitude / 40.) * math.sin((2. *
               math.pi * DOY) / 365.)  # eq 52
     diet_interm.RDPR = (herb_class.FParam.CRD4 + herb_class.FParam.CRD5 * (1. -
@@ -801,7 +805,7 @@ def calc_diet_intermediates(diet, supp, herb_class, site, prop_legume,
     diet_interm.RDPIs = supp.CP * supp.dg * diet.Is
     diet_interm.RDPIf = diet.CPIf * min(0.84 * diet.DMDf + 0.33, 1.)
     UDPI = (diet.Is * supp.CP - diet_interm.RDPIs) + (diet.CPIf -
-       diet_interm.RDPIf)  # rumen undegradable protein
+            diet_interm.RDPIf)  # rumen undegradable protein
     Dudp = max(herb_class.FParam.CA1, min(herb_class.FParam.CA3 * diet.CPIf -
                herb_class.FParam.CA4, herb_class.FParam.CA2))
     DPLSmcp = herb_class.FParam.CA6 * herb_class.FParam.CA7 * diet_interm.RDPR
