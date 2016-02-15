@@ -33,8 +33,6 @@ def execute(args):
             this should be negative
         args['prop_legume'] - proportion of the pasture by weight that is
             legume, ranging from 0-1
-        args['breed'] - breed of livestock, assumed to apply to the entire
-            herd.  See documentation for allowable values.
         args['steepness'] - site steepness, ranging from 1 to 2
         args['DOY'] - initial day of the year, an integer ranging from 1:365
         args['start_year'] - initial year, an integer
@@ -67,7 +65,7 @@ def execute(args):
 
         returns nothing."""
 
-    FParam = FreerParam.FreerParam(forage.get_general_breed(args[u'breed']))
+    global_SRW = 550.
     forage.set_time_step('month')  # current default, enforced by CENTURY
     add_event = 1  # TODO should this ever be 0?
     steps_per_year = forage.find_steps_per_year()
@@ -78,11 +76,11 @@ def execute(args):
                        orient='records')
     herbivore_list = []
     for h_class in herbivore_input:
-        herd = forage.HerbivoreClass(FParam, args[u'breed'], h_class['weight'],
+        herd = forage.HerbivoreClass(h_class['type'], h_class['weight'],
                                      h_class['sex'], h_class['age'],
-                                     h_class['stocking_density'], 550,
+                                     h_class['stocking_density'], global_SRW,
                                      label=h_class['label'], Wbirth=24)
-        herd.update(FParam)
+        herd.update()
         BC = 1  # TODO get optional BC from user
         if BC:
             herd.check_BC(BC)
@@ -135,7 +133,8 @@ def execute(args):
             orient='records')
         assert len(supp_list) == 1, "Only one supplement type is allowed"
         supp_info = supp_list[0]
-        supp = forage.Supplement(FParam, supp_info['digestibility'],
+        supp = forage.Supplement(FreerParam.FreerParamCattle('indicus'),
+                                 supp_info['digestibility'],
                                  supp_info['kg_per_day'], supp_info['M_per_d'],
                                  supp_info['ether_extract'],
                                  supp_info['crude_protein'],
@@ -192,7 +191,7 @@ def execute(args):
             os.remove(os.path.join(args[u'century_dir'], file))
             
     total_SD = forage.calc_total_stocking_density(herbivore_list)
-    site = forage.SiteInfo(total_SD, args[u'steepness'], args[u'latitude'])
+    site = forage.SiteInfo(args[u'steepness'], args[u'latitude'])
     threshold_exceeded = 0
     try:
         for step in xrange(args[u'num_months']):
@@ -235,7 +234,6 @@ def execute(args):
                 results_dict[feed_type.label + '_' + feed_type.green_or_dead +
                              '_kgha'].append(feed_type.biomass)
 
-            site.calc_distance_walked(FParam, available_forage)
             if not args[u'user_define_digestibility']:
                 for feed_type in available_forage:
                     feed_type.calc_digestibility_from_protein()
@@ -259,33 +257,32 @@ def execute(args):
 
             # TODO herb class ordering ('who eats first') goes here
             for herb_class in herbivore_list:
-                max_intake = herb_class.calc_max_intake(FParam)
+                herb_class.calc_distance_walked(total_SD, site.S,
+                                                available_forage)
+                max_intake = herb_class.calc_max_intake()
 
-                if herb_class.Z < FParam.CR7:
-                    ZF = 1. + (FParam.CR7 - herb_class.Z)
-                else:
-                    ZF = 1.
-                
+                ZF = herb_class.calc_ZF()
                 adj_forage = forage.calc_adj_availability(available_forage,
                                                    herb_class.stocking_density)
                 diet = forage.diet_selection_t2(ZF, args[u'prop_legume'],
                                                 supp_available, supp,
-                                                max_intake, FParam,
+                                                max_intake, herb_class.FParam,
                                                 adj_forage)
-                diet_interm = forage.calc_diet_intermediates(FParam, diet,
+                diet_interm = forage.calc_diet_intermediates(diet,
                                 supp, herb_class, site, args[u'prop_legume'],
                                 args[u'DOY'])
-                reduced_max_intake = forage.check_max_intake(FParam, diet,
-                                            diet_interm, herb_class,
-                                            max_intake)
+                reduced_max_intake = forage.check_max_intake(diet, diet_interm,
+                                                             herb_class,
+                                                             max_intake)
                 if reduced_max_intake < max_intake:
                     print "## selecting diet with reduced intake ##"
                     print "reduced max intake: %f" % reduced_max_intake
                     diet = forage.diet_selection_t2(ZF, args[u'prop_legume'],
                                                     supp_available, supp,
-                                                    reduced_max_intake, FParam,
+                                                    reduced_max_intake,
+                                                    herb_class.FParam,
                                                     adj_forage)
-                    diet_interm = forage.calc_diet_intermediates(FParam, diet,
+                    diet_interm = forage.calc_diet_intermediates(diet,
                                     supp, herb_class, site,
                                     args[u'prop_legume'], args[u'DOY'])
 
@@ -299,17 +296,17 @@ def execute(args):
                     break
 
                 if herb_class.sex == 'lac_female':
-                    milk_production = forage.check_milk_production(FParam,
+                    milk_production = forage.check_milk_production(
+                                                             herb_class.FParam,
                                                                    diet_interm)
-                    milk_kg_day = forage.calc_milk_yield(FParam,
-                                                         milk_production)
+                    milk_kg_day = forage.calc_milk_yield(milk_production)
 
-                delta_W = forage.calc_delta_weight(FParam, diet, diet_interm,
+                delta_W = forage.calc_delta_weight(diet, diet_interm,
                                                    supp, herb_class)
 
                 delta_W_step = forage.convert_daily_to_step(delta_W)
-                herb_class.update(FParam, delta_W_step,
-                                  forage.find_days_per_step())
+                herb_class.update(delta_weight=delta_W_step,
+                                  delta_time=forage.find_days_per_step())
 
                 results_dict[herb_class.label + '_kg'].append(herb_class.W)
                 results_dict[herb_class.label + '_gain_kg'].append(

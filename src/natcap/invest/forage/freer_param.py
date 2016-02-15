@@ -444,3 +444,18 @@ class FreerParamHindgut:
         self.CG13 = 0.12
         self.CG14 = 0.008
         self.CG15 = 0.115
+
+def get_params(type):
+    """Return parameters specific to the animal type or breed."""
+    
+    if type in ['B_indicus', 'B_taurus', 'indicus_x_taurus']:
+        return FreerParamCattle(type)
+    elif type == 'sheep':
+        return FreerParamSheep()
+    elif type == 'camelid':
+        return FreerParamCamelid()
+    elif type == 'hindgut_fermenter':
+        return FreerParamHindgut()
+    else:
+        er = "Error: breed must match allowable values"
+        raise ValueError(er)
