@@ -222,6 +222,8 @@ class HerbivoreClass:
         if self.sex == 'herd_average':
             self.SRW = (self.SRW*0.6323) + (self.SRW*0.1564) + \
                         (self.SRW*0.3071)
+        if self.sex == 'NA':
+            self.SRW = (self.SRW + self.SRW * 1.4) / 2
         self.Nmax = -1.
         self.N = -1.
         self.Z = -1.
@@ -752,6 +754,8 @@ def calc_diet_intermediates(diet, supp, herb_class, site, prop_legume,
         MEm = MEm * 1.15
     if herb_class.sex == 'herd_average':
         MEm = MEm * 1.055
+    if herb_class.sex == 'NA':
+        MEm = (MEm + MEm * 1.15) / 2
     diet_interm.L = (MEItotal / MEm) - 1.
     MEl = 0.
     if herb_class.sex == 'lac_female':
