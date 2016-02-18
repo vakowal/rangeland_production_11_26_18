@@ -112,6 +112,7 @@ class FreerParamCattle:
         self.CA4 = 0.178
         self.CA6 = 1.
         self.CA7 = 0.6
+        self.CG1 = 1.
         self.CG2 = 0.7
         self.CG4 = 6.
         self.CG5 = 0.4
@@ -222,6 +223,7 @@ class FreerParamSheep:
         self.CA4 = 0.178
         self.CA6 = 1.
         self.CA7 = 0.6
+        self.CG1 = 0.6
         self.CG2 = 0.7
         self.CG4 = 6.
         self.CG5 = 0.4
@@ -235,6 +237,15 @@ class FreerParamSheep:
         self.CG13 = 0.14
         self.CG14 = 0.008
         self.CG15 = 0.115
+        self.CW1 = 24.
+        self.CW2 = 0.004
+        self.CW3 = 0.7
+        self.CW5 = 0.25
+        self.CW6 = 0.072
+        self.CW7 = 1.35
+        self.CW8 = 0.016
+        self.CW9 = 1.
+        self.CW12 = 0.025
 
 class FreerParamCamelid:
 
@@ -324,6 +335,7 @@ class FreerParamCamelid:
         self.CA4 = 0.178
         self.CA6 = 1.
         self.CA7 = 0.6
+        self.CG1 = 0.6
         self.CG2 = 0.7
         self.CG4 = 6.
         self.CG5 = 0.4
@@ -337,6 +349,15 @@ class FreerParamCamelid:
         self.CG13 = 0.14
         self.CG14 = 0.008
         self.CG15 = 0.115
+        self.CW1 = 24.
+        self.CW2 = 0.004
+        self.CW3 = 0.7
+        self.CW5 = 0.25
+        self.CW6 = 0.072
+        self.CW7 = 1.35
+        self.CW8 = 0.016
+        self.CW9 = 1.
+        self.CW12 = 0.025
 
 class FreerParamHindgut:
 
@@ -431,6 +452,7 @@ class FreerParamHindgut:
         self.CA4 = 0.178
         self.CA6 = 1.
         self.CA7 = 0.6
+        self.CG1 = 1.
         self.CG2 = 0.7
         self.CG4 = 6.
         self.CG5 = 0.4

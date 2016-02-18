@@ -32,8 +32,8 @@ def execute(args):
         args['latitude'] - site latitude in degrees.  If south of the equator,
             this should be negative
         args['prop_legume'] - proportion of the pasture by weight that is
-            legume, ranging from 0-1
-        args['steepness'] - site steepness, ranging from 1 to 2
+            legume, ranging from 0:1
+        args['steepness'] - site steepness, ranging from 1:2
         args['DOY'] - initial day of the year, an integer ranging from 1:365
         args['start_year'] - initial year, an integer
         args['start_month'] - initial month, an integer ranging from 1:12
@@ -57,7 +57,7 @@ def execute(args):
             digestibility of forage be drawn from forage input supplied by the
             user?  If false, it is calculated from CENTURY outputs
         args['herbivore_csv'] - an absolute path to a csv file containing all
-            necessary descriptors of the herbivore herd
+            necessary descriptors of each herbivore type
         args['grass_csv'] - an absolute path to a csv file containing all
             necessary descriptors of the grass available as forage
         args['supp_csv'] - an absolute path to a csv file containing all
@@ -79,7 +79,8 @@ def execute(args):
         herd = forage.HerbivoreClass(h_class['type'], h_class['weight'],
                                      h_class['sex'], h_class['age'],
                                      h_class['stocking_density'], global_SRW,
-                                     label=h_class['label'], Wbirth=24)
+                                     h_class['SFW'], label=h_class['label'],
+                                     Wbirth=24)
         herd.update()
         BC = 1  # TODO get optional BC from user
         # if BC:
@@ -295,8 +296,7 @@ def execute(args):
                     threshold_exceeded = 1
                     break
                     
-                if herb_class.type in ['B_indicus', 'B_taurus',
-                                       'indicus_x_taurus', 'sheep']:
+                if herb_class.type != 'hindgut_fermenter':
                     diet_interm = forage.calc_diet_intermediates(diet,
                                             supp, herb_class, site,
                                             args[u'prop_legume'], args[u'DOY'])

@@ -201,7 +201,7 @@ class HerbivoreClass:
     characteristic of a single herbivore type."""
 
     def __init__(self, type, weight, sex, age, stocking_density, SRW,
-                 label=None, Wbirth=None):
+                 SFW=None, label=None, Wbirth=None):
         self.FParam = FreerParam.get_params(type)
         self.label = label
         self.stocking_density = stocking_density  # num animals per ha
@@ -210,6 +210,7 @@ class HerbivoreClass:
         else:
             self.Wbirth = Wbirth
         self.SRW = SRW
+        self.SFW = SFW
         self.Wprev = weight  # arbitrary weight previous to initial weight
         self.W = weight
         self.sex = sex
@@ -286,8 +287,8 @@ class HerbivoreClass:
         YF = 1.  # eq 4 gives a different value for unweaned animals
         TF = 1.  # ignore effect of temperature on intake
         if self.sex == 'lac_female':
-            Ay = 30.  # TODO: days since birth of young
-            BCpart = self.BC  # TODO: body condition at parturition
+            Ay = 30.  # assumed days since birth of young
+            BCpart = self.BC  # assumed body condition at parturition
             Mi = Ay / self.FParam.CI8
             WL = self.Z * ((BCpart - self.BC) / Ay)
             if Ay >= self.FParam.CL2 and WL > self.FParam.CI14 * math.exp(-(
@@ -295,7 +296,7 @@ class HerbivoreClass:
                 LB = (1. - self.FParam.CI12 * WL) / self.FParam.CI13
             else:
                 LB = 1.
-            WMpeak = self.FParam.CI11 * self.SRW  # TODO: expected milk yield at peak lactation (kg/day)
+            WMpeak = self.FParam.CI11 * self.SRW  # assumed expected milk yield at peak lactation (kg/day)
             LC = 1. + self.FParam.CI10 * ((WMpeak - self.FParam.CI11 *
                                          self.SRW)/self.FParam.CI11 * self.SRW)
             LF = 1. + self.FParam.CI19 * Mi ** self.FParam.CI9 * math.exp(
@@ -324,10 +325,10 @@ class HerbivoreClass:
                 raise ValueError
         if Bgreen > 100:
             self.D = (steepness * min(1., self.FParam.CM17 / stocking_density)/
-                     (self.FParam.CM8 * Bgreen + self.FParam.CM9))  # TODO distance to milking shed (eq 44a)
+                     (self.FParam.CM8 * Bgreen + self.FParam.CM9))
         elif Bgreen < 100 and Bdead > 100:
             self.D = (steepness * min(1., self.FParam.CM17 / stocking_density)/
-                     (self.FParam.CM8 * Bdead + self.FParam.CM9))  # TODO distance to milking shed (eq 44a)
+                     (self.FParam.CM8 * Bdead + self.FParam.CM9))
         else:
             self.D = 0.
 
@@ -383,7 +384,7 @@ class FeedType:
         self.green_or_dead = green_or_dead
         self.biomass = biomass  # kg DM per ha: seeds and herbaceous combined
         self.herb_biomass = biomass   # herbaceous alone
-        self.seed_biomass = 0  # seeds alone (for now, they don't exist - TODO)
+        self.seed_biomass = 0  # seeds alone - assumed 0
         self.digestibility = digestibility  # 0 - 1
         self.crude_protein = crude_protein  # 0 - 1
         if type == 'C3':
@@ -439,8 +440,8 @@ class Diet:
 class DietIntermediates:
 
     """This class holds all intermediary values used to calculate weight gain
-    and milk production from the diet. Must hold values needed to modify intake,
-    modify milk production, and allocate energy and protein."""
+    and milk production from the diet. Must hold values needed to modify
+    intake, modify milk production, and allocate energy and protein."""
 
     def __init__(self):
         self.RDPIs = -1.
@@ -524,7 +525,7 @@ def diet_selection_t2(ZF, prop_legume, supp_available, supp, Imax, FParam,
                   available_forage[f_index].green_or_dead
         diet_selected.intake[f_label] = I[f_index]
     diet_selected.DMDf = diet_selected.DMDf / diet_selected.If
-    Iseed = 0.  # TODO: intake of seed
+    Iseed = 0.
     diet_selected.If += Iseed
     if supp_selected:
         Rs = Fs * supp.RQ  # eq 25
@@ -759,9 +760,9 @@ def calc_diet_intermediates(diet, supp, herb_class, site, prop_legume,
     diet_interm.L = (MEItotal / MEm) - 1.
     MEl = 0.
     if herb_class.sex == 'lac_female':
-        Ay = 30.  # TODO: days since birth of young
-        WMpeak = herb_class.FParam.CI11 * herb_class.SRW  # TODO: expected milk yield at peak lactation (kg/day)
-        BCpart = herb_class.BC  # TODO: body condition at parturition
+        Ay = 30.  # assumed days since birth of young
+        WMpeak = herb_class.FParam.CI11 * herb_class.SRW  # assumed expected milk yield at peak lactation (kg/day)
+        BCpart = herb_class.BC  # assumed body condition at parturition
         WL = herb_class.Z * ((BCpart - herb_class.BC) / Ay)
         if Ay >= herb_class.FParam.CL2 and WL > herb_class.FParam.CI14 * \
                                  math.exp(-(herb_class.FParam.CI13 * Ay) ** 2):
@@ -784,6 +785,7 @@ def calc_diet_intermediates(diet, supp, herb_class, site, prop_legume,
         MEl = diet_interm.MP2 / herb_class.FParam.CL5 * kl
         diet_interm.Pl = herb_class.FParam.CL15 * (diet_interm.MP2 /
                          herb_class.FParam.CL6)
+    
     # eq 46, protein req for maintenance:
     if herb_class.type in ['B_indicus', 'B_taurus', 'indicus_x_taurus']:
         Pm = (herb_class.FParam.CM12 * math.log(herb_class.W) - 
@@ -814,9 +816,23 @@ def calc_diet_intermediates(diet, supp, herb_class, site, prop_legume,
                herb_class.FParam.CA4, herb_class.FParam.CA2))
     DPLSmcp = herb_class.FParam.CA6 * herb_class.FParam.CA7 * diet_interm.RDPR
     DPLS = Dudp * UDPI + DPLSmcp  # eq 53: degradable protein leaving the stomach
-    diet_interm.NEg1 = kg * (MEItotal - MEm - MEl)  # eq 101
+    Pw = 0.
+    NEw = 0.
+    if herb_class.type in ['sheep', 'camelid']:
+        AF = herb_class.FParam.CW5 + (1-herb_class.FParam.CW5)*(1-math.exp(
+                                         -herb_class.FParam.CW12*herb_class.A))
+        DLF = 1 + herb_class.FParam.CW6  # assume day length = 12
+        DPLSw = max(0., DPLS - herb_class.FParam.CW9*diet_interm.Pl)
+        MEw = max(0., MEItotal - MEl)
+        Pw = min(herb_class.FParam.CW7*(herb_class.SFW/herb_class.SRW)*AF*DLF*\
+                 DPLSw, herb_class.FParam.CW8*(herb_class.SFW/herb_class.SRW)*\
+                 AF*DLF*MEw)  # eq 77: protein req for wool
+        NEw = (herb_class.FParam.CW1*(Pw-herb_class.FParam.CW2 * herb_class.Z)/
+               herb_class.FParam.CW3)  # eq 81: energy req for wool
+    diet_interm.NEg1 = kg * (MEItotal - MEm - MEl) - NEw  # eq 101
     kDPLS = herb_class.FParam.CG2 # eq 103 simplified for zero milk intake
-    diet_interm.Pg1 = kDPLS * (DPLS - (Pm + diet_interm.Pl) / kDPLS)
+    diet_interm.Pg1 = kDPLS * (DPLS - (Pm + diet_interm.Pl) / kDPLS) - \
+                      (Pw/herb_class.FParam.CG1)
 
     Z_backtick = min(1. - (1. - herb_class.Wbirth / herb_class.SRW) *
                      math.exp((-herb_class.FParam.CN1/herb_class.SRW **
@@ -867,7 +883,7 @@ def check_max_intake(diet, diet_interm, herb_class, max_intake):
     else:
         RDPI = diet_interm.RDPIf + diet_interm.RDPIs
     if diet_interm.RDPR > RDPI:
-        if herb_class.type == 'B_taurus':  # TODO add support for non-cattle
+        if herb_class.type == 'B_taurus':  # TODO camelids?
             reduction_factor = RDPI / diet_interm.RDPR
         elif herb_class.type == 'B_indicus':
             reduction_factor = 1 - ((1 - (RDPI / diet_interm.RDPR)) * 0.5)
