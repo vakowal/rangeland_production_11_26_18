@@ -440,35 +440,38 @@ def find_target_month(add_event, schedule, empirical_date, n_years):
     
     # fill the grazing history with months where no grazing event was scheduled
     filled_history = fill_schedule(history, relative_empirical_year - n_years,
-        relative_empirical_year, empirical_month)
+                                   relative_empirical_year, empirical_month)
     # find candidate months for adding or removing grazing events
     if add_event:
         candidates = filled_history.loc[(filled_history['grazing_level'] ==
-            'none'), ]
+                                        'none'), ]
     else:
         candidates = filled_history.loc[(filled_history['grazing_level'] !=
-            'none'), ] 
+                                        'none'), ] 
     if candidates.shape[0] == 0:
         # no opportunities exist to modify grazing schedule as needed
         return 0
     
     # find target month and year where grazing event should be added or removed
     else:
-        candidates = candidates.sort(['relative_year', 'month'], ascending = [0, 0])
+        candidates = candidates.sort(['relative_year', 'month'],
+                                     ascending=[0, 0])
         target_year = candidates.iloc[0]['relative_year']
         target_month = candidates.iloc[0]['month']
     
-    target_dict['target_year'] = target_year
-    target_dict['target_month'] = target_month
+    target_dict['target_year'] = int(target_year)
+    target_dict['target_month'] = int(target_month)
     
     # if we need to add a grazing event, must find the latest previously 
     # scheduled event
     if add_event:
         events_df = read_events(schedule)
         events_df = events_df.loc[(events_df['block_end_year'] == last_year), ]
-        events_df = events_df.loc[(events_df['relative_year'] == target_year), ]
+        events_df = events_df.loc[(
+                                  events_df['relative_year'] == target_year), ]
         events_df = events_df.loc[(events_df['month'] <= target_month), ]
-        events_df = events_df.sort(['relative_year', 'month'], ascending = [0, 0])
+        events_df = events_df.sort(['relative_year', 'month'],
+                                   ascending=[0, 0])
         prev_event_month = events_df.iloc[0]['month']
         prev_month = events_df.loc[(events_df['month'] == prev_event_month), ]
         num_events_prev_month = prev_month.shape[0]
@@ -507,7 +510,9 @@ def modify_schedule(schedule, add_event, target_dict, graz_level, outdir,
                                                 new_file.write(line)
                                                 prev_event_month_count += 1
                                                 event = line[10:15].strip()
-                                                if event not in ['FRST', 'LAST']:
+                                                if event not in ['FRST',
+                                                                 'LAST',
+                                                                 'SENM']:
                                                     line = sch.next()
                                                     new_file.write(line)
                                                 if prev_event_month_count == target_dict['num_events_prev_month']:
