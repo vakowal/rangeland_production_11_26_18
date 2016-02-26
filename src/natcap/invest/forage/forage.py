@@ -65,7 +65,6 @@ def execute(args):
 
         returns nothing."""
 
-    global_SRW = 550.
     forage.set_time_step('month')  # current default, enforced by CENTURY
     add_event = 1  # TODO should this ever be 0?
     steps_per_year = forage.find_steps_per_year()
@@ -78,8 +77,9 @@ def execute(args):
     for h_class in herbivore_input:
         herd = forage.HerbivoreClass(h_class['type'], h_class['weight'],
                                      h_class['sex'], h_class['age'],
-                                     h_class['stocking_density'], global_SRW,
-                                     h_class['SFW'], label=h_class['label'],
+                                     h_class['stocking_density'],
+                                     h_class['SRW'], h_class['SFW'],
+                                     label=h_class['label'],
                                      Wbirth=24)
         herd.update()
         BC = 1  # TODO get optional BC from user
@@ -164,8 +164,9 @@ def execute(args):
         e_schedule = os.path.join(args[u'input_dir'], grass['label'] + '.sch')
         h_schedule = os.path.join(args[u'input_dir'],
                                   grass['label'] + '_hist.sch')
-        file_list = [hist_bat, extend_bat, e_schedule, h_schedule, site_file,
-                     weather_file]
+        file_list = [hist_bat, extend_bat, e_schedule, h_schedule, site_file]
+        if os.path.isfile(weather_file):
+            file_list.append(weather_file)
         for file in file_list:
             shutil.copyfile(file, os.path.join(args[u'century_dir'],
                                                os.path.basename(file)))
@@ -181,6 +182,8 @@ def execute(args):
         stdout, stderr = p.communicate()
 
         # save copies of CENTURY outputs, but remove from CENTURY dir
+        if not os.path.exists(args['outdir']):
+            os.makedirs(args['outdir'])
         intermediate_dir = os.path.join(args['outdir'],
                                         'CENTURY_outputs_spin_up')
         if not os.path.exists(intermediate_dir):
@@ -211,6 +214,7 @@ def execute(args):
                 outputs = cent.read_CENTURY_outputs(output_file,
                                                     args[u'start_year'],
                                                     args[u'start_year'] + 2)
+                outputs.drop_duplicates(inplace=True)
                 target_month = cent.find_prev_month(year, month)
                 grass['prev_g_gm2'] = grass['green_gm2']
                 grass['prev_d_gm2'] = grass['dead_gm2']

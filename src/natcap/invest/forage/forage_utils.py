@@ -200,8 +200,9 @@ class HerbivoreClass:
     """Herbivore class for tier 2 containing attributes and methods
     characteristic of a single herbivore type."""
 
-    def __init__(self, type, weight, sex, age, stocking_density, SRW,
+    def __init__(self, type, weight, sex, age, stocking_density, SRW=None,
                  SFW=None, label=None, Wbirth=None):
+        global_SRW = 550.
         self.FParam = FreerParam.get_params(type)
         self.label = label
         self.stocking_density = stocking_density  # num animals per ha
@@ -209,7 +210,10 @@ class HerbivoreClass:
             self.Wbirth = 34.7  # weight at birth
         else:
             self.Wbirth = Wbirth
-        self.SRW = SRW
+        if SRW > 0:
+            self.SRW = SRW
+        else:
+            self.SRW = global_SRW
         self.SFW = SFW
         self.Wprev = weight  # arbitrary weight previous to initial weight
         self.W = weight
