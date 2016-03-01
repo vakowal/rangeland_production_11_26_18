@@ -78,9 +78,9 @@ def execute(args):
         herd = forage.HerbivoreClass(h_class['type'], h_class['weight'],
                                      h_class['sex'], h_class['age'],
                                      h_class['stocking_density'],
-                                     h_class['SRW'], h_class['SFW'],
+                                     SRW=h_class['SRW'], SFW=h_class['SFW'],
                                      label=h_class['label'],
-                                     Wbirth=24)
+                                     Wbirth=h_class['birth_weight'])
         herd.update()
         BC = 1  # TODO get optional BC from user
         # if BC:
@@ -263,9 +263,9 @@ def execute(args):
                                                 supp_available, supp,
                                                 max_intake, herb_class.FParam,
                                                 adj_forage)
-                diet_interm = forage.calc_diet_intermediates(diet,
-                                supp, herb_class, site, args[u'prop_legume'],
-                                args[u'DOY'])
+                diet_interm = forage.calc_diet_intermediates(
+                                diet, supp, herb_class, site,
+                                args[u'prop_legume'], args[u'DOY'])
                 if herb_class.type != 'hindgut_fermenter':
                     reduced_max_intake = forage.check_max_intake(diet,
                                                                  diet_interm,
@@ -302,7 +302,6 @@ def execute(args):
                                                                milk_production)
                     delta_W = forage.calc_delta_weight(diet, diet_interm,
                                                        supp, herb_class)
-
                     delta_W_step = forage.convert_daily_to_step(delta_W)
                     herb_class.update(delta_weight=delta_W_step,
                                       delta_time=forage.find_days_per_step())

@@ -256,7 +256,7 @@ class FreerParamCamelid:
         self.CN1 = 0.0157
         self.CN2 = 0.27
         self.CN3 = 0.4
-        self.CI1 = 0.04
+        self.CI1 = 0.028  # intake reduced by 30% relative to sheep
         self.CI2 = 1.7
         self.CI3 = 0.5
         self.CI4 = 25.
@@ -307,7 +307,7 @@ class FreerParamCamelid:
         self.CL23 = 3.
         self.CL24 = 0.6
         self.CM1 = 0.09
-        self.CM2 = 0.26
+        self.CM2 = 0.1898  # maint. ME req. decreased by 27% rel. to sheep
         self.CM3 = 0.00008
         self.CM4 = 0.84
         self.CM5 = 0.23
@@ -317,7 +317,7 @@ class FreerParamCamelid:
         self.CM9 = 0.16
         self.CM10 = 0.0152
         self.CM11 = 0.00046
-        self.CM12 = 0.000147
+        self.CM12 = 0.000109  # maint. CP req. decreased by 26% rel. to sheep
         self.CM13 = 0.003375
         self.CM15 = 1.15
         self.CM16 = 0.0026

@@ -203,13 +203,14 @@ class HerbivoreClass:
     def __init__(self, type, weight, sex, age, stocking_density, SRW=None,
                  SFW=None, label=None, Wbirth=None):
         global_SRW = 550.
+        global_birth_weight = 34.7
         self.FParam = FreerParam.get_params(type)
         self.label = label
         self.stocking_density = stocking_density  # num animals per ha
-        if Wbirth is None:
-            self.Wbirth = 34.7  # weight at birth
-        else:
+        if Wbirth > 0:
             self.Wbirth = Wbirth
+        else:
+            self.Wbirth = global_birth_weight
         if SRW > 0:
             self.SRW = SRW
         else:
@@ -783,8 +784,7 @@ def calc_diet_intermediates(diet, supp, herb_class, site, prop_legume,
     prop_solid = prop_forage + prop_supp
     M_per_Dforage = MEIf / diet.DMDf
     kl = herb_class.FParam.CK5 + herb_class.FParam.CK6 * M_per_Dforage  # eq 34
-    km = ((herb_class.FParam.CK1 + herb_class.FParam.CK2 * M_per_Dforage) *
-          prop_solid + herb_class.FParam.CK3 * prop_milk)  # eq 33 efficiency of energy use for maintenance
+    km = (herb_class.FParam.CK1 + herb_class.FParam.CK2 * M_per_Dforage)  # eq 33 efficiency of energy use for maintenance
     kgs = herb_class.FParam.CK16 * supp.M_per_D  # eq 37 efficiency of energy use for
                                       # growth from supplement
     kgf = (herb_class.FParam.CK13 * (1. + herb_class.FParam.CK14 * prop_legume)
