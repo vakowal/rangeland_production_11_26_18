@@ -285,6 +285,8 @@ class HerbivoreClass:
 
         Returns maximum kg dry matter intake per day."""
 
+        if self.W <= self.Wbirth:
+            return 0
         if self.BC > 1.:
             CF = self.BC * (self.FParam.CI20 - self.BC)/(self.FParam.CI20 - 1.)
         else:
@@ -345,7 +347,7 @@ class HerbivoreClass:
     
     def calc_ZF(self):
         if self.Z_abs < self.FParam.CR7:
-            return 1. + (self.CR7 - self.Z_abs)
+            return 1. + (self.FParam.CR7 - self.Z_abs)
         else:
             return 1.
     
@@ -479,6 +481,12 @@ def diet_selection_t2(ZF, prop_legume, supp_available, supp, Imax, FParam,
     available_forage = sorted(available_forage, reverse=True,
                               key=attrgetter('digestibility'))
     diet_selected = Diet()
+    if Imax == 0:
+        for f_index in range(len(available_forage)):
+            f_label = available_forage[f_index].label + ';' +\
+                        available_forage[f_index].green_or_dead
+            diet_selected.intake[f_label] = 0.
+        return diet_selected
     HR = calc_relative_height(available_forage)
 
     F = list()
@@ -599,8 +607,9 @@ def reduce_demand(diet_dict, stocking_density_dict, available_forage):
                                              feed_type.digestibility)
             diet_dict[hclass_label].CPIf += (intake_daily *
                                              feed_type.crude_protein)
-        diet_dict[hclass_label].DMDf = (diet_dict[hclass_label].DMDf / 
-                                                    diet_dict[hclass_label].If)
+        if diet_dict[hclass_label].If > 0:
+            diet_dict[hclass_label].DMDf = (diet_dict[hclass_label].DMDf / 
+                                            diet_dict[hclass_label].If)
 
 def calc_total_intake(diet_dict, stocking_density_dict):
     """Calculate total intake of forage across grass and herbivore types."""
@@ -773,6 +782,8 @@ def calc_diet_intermediates(diet, supp, herb_class, site, prop_legume,
     check_milk_production, calc_milk_yield and calc_delta_weight."""
 
     diet_interm = DietIntermediates()
+    if diet.If == 0. and diet.Is == 0.:
+        return diet_interm
 
     MEIf = (17.0 * diet.DMDf - 2) * diet.If  # eq 31: herbage
     MEIs = (13.3 * supp.DMD + 23.4 * supp.EE + 1.32) * diet.Is  # eq 32
@@ -900,7 +911,7 @@ def calc_diet_intermediates(diet, supp, herb_class, site, prop_legume,
     diet_interm.MEItotal = MEItotal
     return diet_interm
 
-def calc_delta_weight(diet, diet_interm, supp, herb_class):
+def calc_delta_weight(diet_interm, herb_class):
     """Calculate weight gain or loss from the diet selected by a herbivore
     class.  Energy is first allocated to maintenance, then to growth.  This
     function ignores energy and protein costs of pregnancy, wool growth, and
@@ -922,6 +933,8 @@ def check_max_intake(diet, diet_interm, herb_class, max_intake):
 
     Returns maximum intake given characteristics of the selected diet."""
 
+    if max_intake == 0:
+        return 0
     if diet_interm.L > 0:
         RDPI = (diet_interm.RDPIf * (1. - (herb_class.FParam.CRD1 -
                 herb_class.FParam.CRD2 * diet.DMDf) * diet_interm.L) +
@@ -946,7 +959,8 @@ def check_milk_production(FParam, diet_interm):
 
     Modifies values in diet_interm and returns modified milk production."""
 
-
+    if diet_interm.L == -1.:
+        return 0
     MP = (1. + min(0., diet_interm.Pnet / diet_interm.Pl)) * diet_interm.MP2  # eq 110
     if MP != diet_interm.MP2:
         print "Recalculated MP differs from original"

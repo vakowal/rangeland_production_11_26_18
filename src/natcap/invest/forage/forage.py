@@ -95,7 +95,7 @@ def execute(args):
     for h_class in herbivore_list:
         results_dict[h_class.label + '_kg'] = []
         results_dict[h_class.label + '_gain_kg'] = []
-        results_dict[h_class.label + '_offtake'] = []
+        results_dict[h_class.label + '_intake_forage_per_indiv_kg'] = []
         if h_class.sex == 'lac_female':
             results_dict['milk_prod_kg'] = []
     for grass in grass_list:
@@ -104,8 +104,7 @@ def execute(args):
     results_dict['total_offtake'] = []
     schedule_list = []
     for grass in grass_list:
-        schedule = os.path.join(args[u'input_dir'], (grass['label'] +
-                                '.sch'))
+        schedule = os.path.join(args[u'input_dir'], (grass['label'] + '.sch'))
         if os.path.exists(schedule):
             schedule_list.append(schedule)
         else:
@@ -178,9 +177,11 @@ def execute(args):
                                    '.bat'))
         p = Popen(["cmd.exe", "/c " + hist_bat], cwd=args[u'century_dir'])
         stdout, stderr = p.communicate()
+        p.wait()
         p = Popen(["cmd.exe", "/c " + century_bat], cwd=args[u'century_dir'])
         stdout, stderr = p.communicate()
-
+        p.wait()
+        
         # save copies of CENTURY outputs, but remove from CENTURY dir
         if not os.path.exists(args['outdir']):
             os.makedirs(args['outdir'])
@@ -257,8 +258,9 @@ def execute(args):
                 max_intake = herb_class.calc_max_intake()
 
                 ZF = herb_class.calc_ZF()
-                adj_forage = forage.calc_adj_availability(available_forage,
-                                                   herb_class.stocking_density)
+                adj_forage = forage.calc_adj_availability(
+                                             available_forage,
+                                             herb_class.stocking_density)
                 diet = forage.diet_selection_t2(ZF, args[u'prop_legume'],
                                                 supp_available, supp,
                                                 max_intake, herb_class.FParam,
@@ -291,17 +293,16 @@ def execute(args):
             for herb_class in herbivore_list:
                 diet = diet_dict[herb_class.label]
                 if herb_class.type != 'hindgut_fermenter':
-                    diet_interm = forage.calc_diet_intermediates(diet,
-                                            supp, herb_class, site,
+                    diet_interm = forage.calc_diet_intermediates(
+                                            diet, supp, herb_class, site,
                                             args[u'prop_legume'], args[u'DOY'])
                     if herb_class.sex == 'lac_female':
                         milk_production = forage.check_milk_production(
                                                              herb_class.FParam,
-                                                                   diet_interm)
+                                                             diet_interm)
                         milk_kg_day = herb_class.calc_milk_yield(
                                                                milk_production)
-                    delta_W = forage.calc_delta_weight(diet, diet_interm,
-                                                       supp, herb_class)
+                    delta_W = forage.calc_delta_weight(diet_interm, herb_class)
                     delta_W_step = forage.convert_daily_to_step(delta_W)
                     herb_class.update(delta_weight=delta_W_step,
                                       delta_time=forage.find_days_per_step())
@@ -309,9 +310,12 @@ def execute(args):
                 results_dict[herb_class.label + '_kg'].append(herb_class.W)
                 results_dict[herb_class.label + '_gain_kg'].append(
                                                                   delta_W_step)
-                results_dict[herb_class.label + '_offtake'].append(diet.If)
+                results_dict[herb_class.label +
+                             '_intake_forage_per_indiv_kg'].append(
+                                         forage.convert_daily_to_step(diet.If))
                 if herb_class.sex == 'lac_female':
-                    results_dict['milk_prod_kg'].append(milk_kg_day * 30.)
+                    results_dict['milk_prod_kg'].append(
+                                     forage.convert_daily_to_step(milk_kg_day))
 
             # calculate percent live and dead removed for each grass type
             consumed_dict = forage.calc_percent_consumed(available_forage,
@@ -339,6 +343,7 @@ def execute(args):
                 p = Popen(["cmd.exe", "/c " + century_bat],
                           cwd=args[u'century_dir'])
                 stdout, stderr = p.communicate()
+                p.wait()
                 # save copies of CENTURY outputs, but remove from CENTURY dir
                 intermediate_dir = os.path.join(args['outdir'],
                                      'CENTURY_outputs_m%d_y%d' % (month, year))
@@ -361,6 +366,15 @@ def execute(args):
         for grass in grass_list:
             os.remove(os.path.join(args[u'century_dir'], grass['label']
                       + '_hist.bin'))
+        for schedule in schedule_list:
+            label = os.path.basename(schedule)[:-4]
+            orig_copy = os.path.join(args[u'input_dir'], label + '_orig.sch')
+            os.remove(orig_copy)
+        for grass in grass_list:
+            os.remove(os.path.join(args[u'input_dir'], (grass['label'] +
+                                   '_hist.bat')))
+            os.remove(os.path.join(args[u'input_dir'], (grass['label'] +
+                                   '.bat')))
         filled_dict = forage.fill_dict(results_dict, 'NA')
         df = pandas.DataFrame(filled_dict)
         df.to_csv(os.path.join(args['outdir'], 'summary_results.csv'))
