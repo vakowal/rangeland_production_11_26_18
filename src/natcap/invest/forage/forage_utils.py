@@ -266,6 +266,8 @@ class HerbivoreClass:
 
         self.Wprev = self.W
         self.W = self.W + delta_weight
+        if self.W < 1:
+            self.W = 0
         self.A = self.A + delta_time
         self.Nmax = self.SRW - (self.SRW - self.Wbirth) * math.exp(
                     (-self.FParam.CN1 * self.A)/(self.SRW ** self.FParam.CN2))  # maximum body size (kg), eq 1
@@ -919,10 +921,18 @@ def calc_delta_weight(diet_interm, herb_class):
 
     Returns the change in weight (kg) in one day."""
 
+    if diet_interm.MEItotal == 0.:
+        return 0
     NEg = diet_interm.NEg1 + herb_class.FParam.CG12 * diet_interm.EVG * (min(
           0., diet_interm.Pnet) / diet_interm.PCG)
     EBG = NEg / diet_interm.EVG
-    delta_W = herb_class.FParam.CG13 * EBG  # eq 117, kg
+    if NEg < 0 and diet_interm.EVG < 0:
+        # in this boundary condition, intake is very low relative to
+        # requirements and body condition is very poor, and yet delta_W is
+        # calculated to be very large positive. We force starvation instead.
+        delta_W = -(convert_step_to_daily(herb_class.W))
+    else:
+        delta_W = herb_class.FParam.CG13 * EBG  # eq 117, kg
     return delta_W
 
 def check_max_intake(diet, diet_interm, herb_class, max_intake):
