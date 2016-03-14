@@ -466,7 +466,7 @@ class DietIntermediates:
         self.Pg1 = 0.
         self.MEItotal = 0.
 
-def diet_selection_t2(ZF, prop_legume, supp_available, supp, Imax, FParam,
+def diet_selection_t2(ZF, HR, prop_legume, supp_available, supp, Imax, FParam,
                       available_forage, force_supp=None):
     """Perform diet selection for an individual herbivore, tier 2.  This
     function calculates relative availability, F (including factors like
@@ -489,7 +489,6 @@ def diet_selection_t2(ZF, prop_legume, supp_available, supp, Imax, FParam,
                         available_forage[f_index].green_or_dead
             diet_selected.intake[f_label] = 0.
         return diet_selected
-    HR = calc_relative_height(available_forage)
 
     F = list()
     RR = list()

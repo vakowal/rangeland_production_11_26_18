@@ -258,10 +258,11 @@ def execute(args):
                 max_intake = herb_class.calc_max_intake()
 
                 ZF = herb_class.calc_ZF()
+                HR = forage.calc_relative_height(available_forage)
                 adj_forage = forage.calc_adj_availability(
                                              available_forage,
                                              herb_class.stocking_density)
-                diet = forage.diet_selection_t2(ZF, args[u'prop_legume'],
+                diet = forage.diet_selection_t2(ZF, HR, args[u'prop_legume'],
                                                 supp_available, supp,
                                                 max_intake, herb_class.FParam,
                                                 adj_forage)
@@ -274,7 +275,7 @@ def execute(args):
                                                                  herb_class,
                                                                  max_intake)
                     if reduced_max_intake < max_intake:
-                        diet = forage.diet_selection_t2(ZF,
+                        diet = forage.diet_selection_t2(ZF, HR,
                                                         args[u'prop_legume'],
                                                         supp_available, supp,
                                                         reduced_max_intake,
