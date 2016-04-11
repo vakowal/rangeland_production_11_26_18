@@ -768,7 +768,7 @@ def calc_diet_intermediates(diet, supp, herb_class, site, prop_legume,
     prop_supp = MEIs / MEItotal
     prop_milk = 0
     prop_solid = prop_forage + prop_supp
-    M_per_Dforage = MEIf / diet.DMDf
+    M_per_Dforage = MEIf / diet.If
     kl = herb_class.FParam.CK5 + herb_class.FParam.CK6 * M_per_Dforage  # eq 34
     km = (herb_class.FParam.CK1 + herb_class.FParam.CK2 * M_per_Dforage)  # eq 33 efficiency of energy use for maintenance
     kgs = herb_class.FParam.CK16 * supp.M_per_D  # eq 37 efficiency of energy use for
@@ -780,8 +780,7 @@ def calc_diet_intermediates(diet, supp, herb_class, site, prop_legume,
     Egraze = herb_class.FParam.CM6 * herb_class.W * diet.If * \
              (herb_class.FParam.CM7 - diet.DMDf) + Emove
     Emetab = herb_class.FParam.CM2 * herb_class.W ** 0.75 * max(math.exp(
-             -herb_class.FParam.CM3 * herb_class.A), herb_class.FParam.CM4) * \
-             (1. + herb_class.FParam.CM5 * prop_milk)
+             -herb_class.FParam.CM3 * herb_class.A), herb_class.FParam.CM4)
     # eq 41, energy req for maintenance:
     MEm = (Emetab + Egraze) / km + herb_class.FParam.CM1 * MEItotal
     if herb_class.sex == 'castrate' or herb_class.sex == 'entire_m':
