@@ -259,13 +259,10 @@ def execute(args):
 
                 ZF = herb_class.calc_ZF()
                 HR = forage.calc_relative_height(available_forage)
-                adj_forage = forage.calc_adj_availability(
-                                             available_forage,
-                                             herb_class.stocking_density)
                 diet = forage.diet_selection_t2(ZF, HR, args[u'prop_legume'],
                                                 supp_available, supp,
                                                 max_intake, herb_class.FParam,
-                                                adj_forage)
+                                                available_forage)
                 diet_interm = forage.calc_diet_intermediates(
                                 diet, supp, herb_class, site,
                                 args[u'prop_legume'], args[u'DOY'])
@@ -280,7 +277,7 @@ def execute(args):
                                                         supp_available, supp,
                                                         reduced_max_intake,
                                                         herb_class.FParam,
-                                                        adj_forage)
+                                                        available_forage)
                 diet_dict[herb_class.label] = diet
             forage.reduce_demand(diet_dict, stocking_density_dict,
                                  available_forage)

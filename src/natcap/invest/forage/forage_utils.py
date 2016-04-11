@@ -705,29 +705,6 @@ def calc_feed_types(grass_list):
         feed_type.rel_availability = feed_type.biomass / sum_biomass
     return forage
 
-def calc_adj_availability(forage, sd):
-    """Adjust the availability of forage types by stocking density of an
-    herbivore class, to calculate available forage per animal within an
-    herbivore class.  This converts between the biomass units of the simulation
-    (kg per ha) to the units of the livestock portion (kg consumed per animal),
-    using stocking density as the conversion factor."""
-    
-    adj_forage = []
-    for orig in forage:
-        if orig.SF == 0:
-            type = 'C3'
-        elif orig.SF == 0.16:
-            type = 'C4'
-        else:
-            er = 'Error: grass type not identified from feed type'
-            raise Exception(er)
-        new = FeedType(orig.label, orig.green_or_dead, (orig.biomass/sd),
-                       orig.digestibility, orig.crude_protein, type)
-        new.rel_availability = orig.rel_availability
-        adj_forage.append(new)
-    return adj_forage
-        
-
 def calc_forage_classes(Bgreen, Bdead, DMDgreen, DMDdead):
     """Distribute available forage among 6 pools of fixed average digestibility
     ranging from 0.3 to 0.8.  Then, calculate relative availability of forage
