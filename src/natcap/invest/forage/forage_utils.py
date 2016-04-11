@@ -388,12 +388,10 @@ class FeedType:
     and herbaceous."""
 
     def __init__(self, label, green_or_dead, biomass, digestibility,
-        crude_protein, type):
+                 crude_protein, type):
         self.label = label
         self.green_or_dead = green_or_dead
         self.biomass = biomass  # kg DM per ha: seeds and herbaceous combined
-        self.herb_biomass = biomass   # herbaceous alone
-        self.seed_biomass = 0  # seeds alone - assumed 0
         self.digestibility = digestibility  # 0 - 1
         self.crude_protein = crude_protein  # 0 - 1
         if type == 'C3':
@@ -526,8 +524,7 @@ def diet_selection_t2(ZF, HR, prop_legume, supp_available, supp, Imax, FParam,
     for f_index in range(len(available_forage)):
         R.append(F[f_index] * RQ[f_index] * (1. + FParam.CR2 * sum_prev_classes
                 ** 2 * prop_legume))  # eq 20
-        I.append(Imax * R[f_index] * (available_forage[f_index].herb_biomass /
-                available_forage[f_index].biomass))  # eq 27
+        I.append(Imax * R[f_index])  # eq 27
         diet_selected.DMDf += (I[f_index] *
                                available_forage[f_index].digestibility)
         diet_selected.CPIf += (I[f_index] *

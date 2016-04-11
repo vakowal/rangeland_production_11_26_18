@@ -228,7 +228,7 @@ def execute(args):
                                                target_month, 'aglivc'])
                     grass['cprotein_dead'] = (outputs.loc[target_month,
                                               'stdede1'] / outputs.loc[
-                                            target_month, 'stdedc'])
+                                              target_month, 'stdedc'])
             if step == 0:
                 available_forage = forage.calc_feed_types(grass_list)
             else:
