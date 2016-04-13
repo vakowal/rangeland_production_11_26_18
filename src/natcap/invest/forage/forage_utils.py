@@ -200,27 +200,26 @@ class HerbivoreClass:
     """Herbivore class for tier 2 containing attributes and methods
     characteristic of a single herbivore type."""
 
-    def __init__(self, type, weight, sex, age, stocking_density, SRW=None,
-                 SFW=None, label=None, Wbirth=None):
+    def __init__(self, inputs_dict):                 
         global_SRW = 550.
         global_birth_weight = 34.7
-        self.FParam = FreerParam.get_params(type)
-        self.label = label
-        self.stocking_density = stocking_density  # num animals per ha
-        if Wbirth > 0:
-            self.Wbirth = Wbirth
+        self.FParam = FreerParam.get_params(inputs_dict['type'])
+        self.label = inputs_dict['label']
+        self.stocking_density = inputs_dict['stocking_density']  # num animals per ha
+        if inputs_dict['Wbirth'] > 0:
+            self.Wbirth = inputs_dict['Wbirth']
         else:
             self.Wbirth = global_birth_weight
-        if SRW > 0:
-            self.SRW = SRW
+        if inputs_dict['SRW'] > 0:
+            self.SRW = inputs_dict['SRW']
         else:
             self.SRW = global_SRW
-        self.SFW = SFW
-        self.Wprev = weight  # arbitrary weight previous to initial weight
-        self.W = weight
-        self.sex = sex
-        self.type = type
-        self.A = age
+        self.SFW = inputs_dict['SFW']
+        self.Wprev = inputs_dict['weight']  # arbitrary weight previous to initial weight
+        self.W = inputs_dict['weight']
+        self.sex = inputs_dict['sex']
+        self.type = inputs_dict['type']
+        self.A = inputs_dict['age']
         if self.sex == 'entire_m':
             self.SRW = self.SRW * 1.4
         if self.sex == 'castrate':
@@ -236,6 +235,11 @@ class HerbivoreClass:
         self.Z_abs = -1.
         self.BC = -1.
         self.D = -1.
+        
+        # calibration parameters
+        for param in ['CM2', 'CM12', 'CK13', 'CG2']:
+            if inputs_dict[param] is not None:
+                self.FParam.param = inputs_dict[param]
 
     def __repr__(self):
         return '{}: prev weight: {} weight: {} BC: {}'.format(

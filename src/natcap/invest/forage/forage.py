@@ -75,12 +75,7 @@ def execute(args):
                        orient='records')
     herbivore_list = []
     for h_class in herbivore_input:
-        herd = forage.HerbivoreClass(h_class['type'], h_class['weight'],
-                                     h_class['sex'], h_class['age'],
-                                     h_class['stocking_density'],
-                                     SRW=h_class['SRW'], SFW=h_class['SFW'],
-                                     label=h_class['label'],
-                                     Wbirth=h_class['birth_weight'])
+        herd = forage.HerbivoreClass(h_class)
         herd.update()
         BC = 1  # TODO get optional BC from user
         # if BC:
