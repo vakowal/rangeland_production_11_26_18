@@ -206,8 +206,8 @@ class HerbivoreClass:
         self.FParam = FreerParam.get_params(inputs_dict['type'])
         self.label = inputs_dict['label']
         self.stocking_density = inputs_dict['stocking_density']  # num animals per ha
-        if inputs_dict['birth_weight'] > 0:
-            self.Wbirth = inputs_dict['birth_weight']
+        if inputs_dict['Wbirth'] > 0:
+            self.Wbirth = inputs_dict['Wbirth']
         else:
             self.Wbirth = global_birth_weight
         if inputs_dict['SRW'] > 0:
@@ -238,11 +238,8 @@ class HerbivoreClass:
         
         # calibration parameters
         for param in ['CM2', 'CM12', 'CK13', 'CG2']:
-            try:
-                if inputs_dict[param] is not None:
-                    self.FParam.param = inputs_dict[param]
-            except KeyError:
-                continue
+            if inputs_dict[param] is not None:
+                self.FParam.param = inputs_dict[param]
 
     def __repr__(self):
         return '{}: prev weight: {} weight: {} BC: {}'.format(
