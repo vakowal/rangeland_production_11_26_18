@@ -62,6 +62,8 @@ def execute(args):
             necessary descriptors of the grass available as forage
         args['supp_csv'] - an absolute path to a csv file containing all
             necessary descriptors of supplemental feed (optional)
+        args['restart_yearly'] - re-initialize the animal herd every year?
+            hack-y option for CGIAR Peru integration with SWAT.
 
         returns nothing."""
 
@@ -198,12 +200,16 @@ def execute(args):
         for step in xrange(args[u'num_months']):
             if threshold_exceeded:
                 break
-            month = args[u'start_month'] + step
-            if month > 12:
-                year = args[u'start_year'] + 1
-                month = month - 12
+            step_month = args[u'start_month'] + step
+            if step_month > 12:
+                mod = step_month % 12
+                if mod == 0:
+                    month = 12
+                else:
+                    month = mod
             else:
-                year = args[u'start_year']
+                month = step_month
+            year = (step / 12) + args[u'start_year']
             # get biomass and crude protein for each grass type from CENTURY
             for grass in grass_list:
                 output_file = os.path.join(intermediate_dir,

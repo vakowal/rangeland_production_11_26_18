@@ -237,12 +237,26 @@ class HerbivoreClass:
         self.D = -1.
         
         # calibration parameters
-        for param in ['CM2', 'CM12', 'CK13', 'CG2']:
-            try:
-                if inputs_dict[param] is not None:
-                    self.FParam.param = inputs_dict[param]
-            except KeyError:
-                continue
+        try:
+            if inputs_dict['CM2'] is not None:
+                self.FParam.CM2 = inputs_dict['CM2']
+        except KeyError:
+            pass
+        try:
+            if inputs_dict['CM12'] is not None:
+                self.FParam.CM12 = inputs_dict['CM12']
+        except KeyError:
+            pass
+        try:
+            if inputs_dict['CK13'] is not None:
+                self.FParam.CK13 = inputs_dict['CK13']
+        except KeyError:
+            pass
+        try:
+            if inputs_dict['CG2'] is not None:
+                self.FParam.CG2 = inputs_dict['CG2']
+        except KeyError:
+            pass            
 
     def __repr__(self):
         return '{}: prev weight: {} weight: {} BC: {}'.format(
