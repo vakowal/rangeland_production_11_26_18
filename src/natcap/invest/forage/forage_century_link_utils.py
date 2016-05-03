@@ -516,7 +516,8 @@ def modify_schedule(schedule, add_event, target_dict, graz_level, outdir,
                                                     line = sch.next()
                                                     new_file.write(line)
                                                 if prev_event_month_count == target_dict['num_events_prev_month']:
-                                                    insertline = '   ' + str(target_dict['target_year']) + '    ' + str(target_dict['target_month']) + ' GRAZ\n'
+                                                    mid_len = 5 - len(str(target_dict['target_year']))
+                                                    insertline = '   ' + str(target_dict['target_year']) + (' ' * mid_len) + str(target_dict['target_month']) + ' GRAZ\n'
                                                     new_file.write(insertline)
                                                     new_file.write(graz_level + '\n')
                                                 continue
@@ -563,7 +564,7 @@ def add_new_graz_level(grass, consumed, graz_file, template_level, outdir,
                     new_file.write(line)
                     if '(orig)' in line or '(added)' in line:
                         existing_codes.append(line[:4].strip())
-                    if template_level + '  ' in line:
+                    if line.startswith(template_level + ' '):
                         # copy template parameters to template_level
                         line = old_file.next()
                         new_file.write(line)
@@ -573,8 +574,8 @@ def add_new_graz_level(grass, consumed, graz_file, template_level, outdir,
                             line = old_file.next()
                             template.append(line)
                             new_file.write(line)
-                        line = old_file.next()
-                        new_file.write(line)                        
+                        #line = old_file.next()
+                        #new_file.write(line)                        
                 newflgrem = '%.5f' % consumed[flgrem_key] + "           'FLGREM'"
                 newfdgrem = '%.5f' % consumed[fdgrem_key] + "           'FDGREM'" 
                 new_code = ''.join(random.choice(string.ascii_uppercase)

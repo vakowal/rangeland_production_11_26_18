@@ -18,6 +18,7 @@
 import os
 import sys
 import shutil
+import time
 from subprocess import Popen
 import pandas
 
@@ -175,9 +176,13 @@ def execute(args):
         p = Popen(["cmd.exe", "/c " + hist_bat], cwd=args[u'century_dir'])
         stdout, stderr = p.communicate()
         p.wait()
+        cent.check_CENTURY_log(os.path.join(args[u'century_dir'],
+                               grass['label']+'_hist_log.txt'))
         p = Popen(["cmd.exe", "/c " + century_bat], cwd=args[u'century_dir'])
         stdout, stderr = p.communicate()
         p.wait()
+        cent.check_CENTURY_log(os.path.join(args[u'century_dir'],
+                               grass['label']+'_log.txt'))
         
         # save copies of CENTURY outputs, but remove from CENTURY dir
         if not os.path.exists(args['outdir']):
@@ -210,18 +215,27 @@ def execute(args):
             else:
                 month = step_month
             year = (step / 12) + args[u'start_year']
+            if month == 1 and args['restart_yearly']:
+                herbivore_list = []
+                for h_class in herbivore_input:
+                    herd = forage.HerbivoreClass(h_class)
+                    herd.update()
+                    herbivore_list.append(herd)
             # get biomass and crude protein for each grass type from CENTURY
             for grass in grass_list:
                 output_file = os.path.join(intermediate_dir,
                                            grass['label'] + '.lis')
                 outputs = cent.read_CENTURY_outputs(output_file,
-                                                    args[u'start_year'],
-                                                    args[u'start_year'] + 2)
+                                                    year - 1,
+                                                    year + 1)
                 outputs.drop_duplicates(inplace=True)
                 target_month = cent.find_prev_month(year, month)
                 grass['prev_g_gm2'] = grass['green_gm2']
                 grass['prev_d_gm2'] = grass['dead_gm2']
-                grass['green_gm2'] = outputs.loc[target_month, 'aglivc']
+                try:
+                    grass['green_gm2'] = outputs.loc[target_month, 'aglivc']
+                except KeyError:
+                    import pdb; pdb.set_trace()
                 grass['dead_gm2'] = outputs.loc[target_month, 'stdedc']
                 if not args[u'user_define_protein']:
                     grass['cprotein_green'] = (outputs.loc[target_month,
@@ -267,18 +281,18 @@ def execute(args):
                 diet_interm = forage.calc_diet_intermediates(
                                 diet, supp, herb_class, site,
                                 args[u'prop_legume'], args[u'DOY'])
-                if herb_class.type != 'hindgut_fermenter':
-                    reduced_max_intake = forage.check_max_intake(diet,
-                                                                 diet_interm,
-                                                                 herb_class,
-                                                                 max_intake)
-                    if reduced_max_intake < max_intake:
-                        diet = forage.diet_selection_t2(ZF, HR,
-                                                        args[u'prop_legume'],
-                                                        supp_available, supp,
-                                                        reduced_max_intake,
-                                                        herb_class.FParam,
-                                                        available_forage)
+                # if herb_class.type != 'hindgut_fermenter':
+                    # reduced_max_intake = forage.check_max_intake(diet,
+                                                                 # diet_interm,
+                                                                 # herb_class,
+                                                                 # max_intake)
+                    # if reduced_max_intake < max_intake:
+                        # diet = forage.diet_selection_t2(ZF, HR,
+                                                        # args[u'prop_legume'],
+                                                        # supp_available, supp,
+                                                        # reduced_max_intake,
+                                                        # herb_class.FParam,
+                                                        # available_forage)
                 diet_dict[herb_class.label] = diet
             forage.reduce_demand(diet_dict, stocking_density_dict,
                                  available_forage)
@@ -343,15 +357,30 @@ def execute(args):
                           cwd=args[u'century_dir'])
                 stdout, stderr = p.communicate()
                 p.wait()
+                cent.check_CENTURY_log(os.path.join(args[u'century_dir'],
+                                       grass['label']+'_log.txt'))
                 # save copies of CENTURY outputs, but remove from CENTURY dir
                 intermediate_dir = os.path.join(args['outdir'],
                                      'CENTURY_outputs_m%d_y%d' % (month, year))
                 if not os.path.exists(intermediate_dir):
                     os.makedirs(intermediate_dir)
                 for file in century_outputs:
-                    shutil.copyfile(os.path.join(args[u'century_dir'], file),
-                                    os.path.join(intermediate_dir, file))
-                    os.remove(os.path.join(args[u'century_dir'], file))
+                    n_tries = 3
+                    while True:
+                        if n_tries == 0: 
+                            break
+                        try:
+                            n_tries -= 1
+                            shutil.move(os.path.join(args[u'century_dir'], file),
+                                        os.path.join(intermediate_dir, file))
+                            break
+                        except OSError:
+                            print 'OSError in moving %s, trying again' % file
+                            time.sleep(1.0)
+                            
+                        #shutil.copyfile(os.path.join(args[u'century_dir'], file),
+                        #                os.path.join(intermediate_dir, file))
+                        #os.remove(os.path.join(args[u'century_dir'], file))
     finally:
         # replace graz params used by CENTURY with original file
         os.remove(graz_file)
