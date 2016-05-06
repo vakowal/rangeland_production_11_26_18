@@ -31,6 +31,8 @@ def check_CENTURY_log(filename):
     if not success:
         with open(filename, 'r') as file:
             error = [line.strip() for line in file]
+            if len(error) == 0:
+                error = "CENTURY log file is empty"
             raise Exception(error)
             
 def read_graz_params(graz_file):

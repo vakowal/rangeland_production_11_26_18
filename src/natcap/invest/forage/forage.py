@@ -73,18 +73,19 @@ def execute(args):
     steps_per_year = forage.find_steps_per_year()
     graz_file = os.path.join(args[u'century_dir'], 'graz.100')
     cent.set_century_directory(args[u'century_dir'])
-
-    herbivore_input = (pandas.read_csv(args[u'herbivore_csv'])).to_dict(
-                       orient='records')
+    
     herbivore_list = []
-    for h_class in herbivore_input:
-        herd = forage.HerbivoreClass(h_class)
-        herd.update()
-        BC = 1  # TODO get optional BC from user
-        # if BC:
-            # herd.check_BC(BC)
-        
-        herbivore_list.append(herd)
+    if args[u'herbivore_csv'] is not None:
+        herbivore_input = (pandas.read_csv(args[u'herbivore_csv'])).to_dict(
+                           orient='records')
+        for h_class in herbivore_input:
+            herd = forage.HerbivoreClass(h_class)
+            herd.update()
+            BC = 1  # TODO get optional BC from user
+            # if BC:
+                # herd.check_BC(BC)
+            
+            herbivore_list.append(herd)
 
     grass_list = (pandas.read_csv(args[u'grass_csv'])).to_dict(
                                                               orient='records')
@@ -203,8 +204,6 @@ def execute(args):
     threshold_exceeded = 0
     try:
         for step in xrange(args[u'num_months']):
-            if threshold_exceeded:
-                break
             step_month = args[u'start_month'] + step
             if step_month > 12:
                 mod = step_month % 12
@@ -215,7 +214,9 @@ def execute(args):
             else:
                 month = step_month
             year = (step / 12) + args[u'start_year']
-            if month == 1 and args['restart_yearly']:
+            if month == 1 and args['restart_yearly'] and \
+                                            args[u'herbivore_csv'] is not None:
+                threshold_exceeded = 0
                 herbivore_list = []
                 for h_class in herbivore_input:
                     herd = forage.HerbivoreClass(h_class)
@@ -235,7 +236,7 @@ def execute(args):
                 try:
                     grass['green_gm2'] = outputs.loc[target_month, 'aglivc']
                 except KeyError:
-                    import pdb; pdb.set_trace()
+                    raise Exception("CENTURY outputs not as expected")
                 grass['dead_gm2'] = outputs.loc[target_month, 'stdedc']
                 if not args[u'user_define_protein']:
                     grass['cprotein_green'] = (outputs.loc[target_month,
@@ -301,9 +302,10 @@ def execute(args):
             if (total_biomass - total_intake_step) < threshold_biomass:
                 print "Forage consumed violates management threshold"
                 threshold_exceeded = 1
-                break
-            
+                total_intake_step = 0
             for herb_class in herbivore_list:
+                if threshold_exceeded:
+                    diet_dict[herb_class.label] = forage.Diet()
                 diet = diet_dict[herb_class.label]
                 if herb_class.type != 'hindgut_fermenter':
                     diet_interm = forage.calc_diet_intermediates(
@@ -315,7 +317,10 @@ def execute(args):
                                                              diet_interm)
                         milk_kg_day = herb_class.calc_milk_yield(
                                                                milk_production)
-                    delta_W = forage.calc_delta_weight(diet_interm, herb_class)
+                    if threshold_exceeded:
+                        delta_W = -(forage.convert_step_to_daily(herb_class.W))
+                    else:
+                        delta_W = forage.calc_delta_weight(diet_interm, herb_class)
                     delta_W_step = forage.convert_daily_to_step(delta_W)
                     herb_class.update(delta_weight=delta_W_step,
                                       delta_time=forage.find_days_per_step())
@@ -339,16 +344,20 @@ def execute(args):
             # send to CENTURY for this month's scheduled grazing event
             date = year + float('%.2f' % (month / 12.))
             for grass in grass_list:
-                schedule = os.path.join(args[u'century_dir'], (grass['label'] +
-                                        '.sch'))
-                target_dict = cent.find_target_month(add_event, schedule, date,
-                                                     1)
-                new_code = cent.add_new_graz_level(grass, consumed_dict,
-                                                   graz_file,
-                                                   args[u'template_level'],
-                                                   args[u'outdir'], step)
-                cent.modify_schedule(schedule, add_event, target_dict,
-                                     new_code, args[u'outdir'], step)
+                g_label = ';'.join([grass['label'], 'green'])
+                d_label = ';'.join([grass['label'], 'dead'])
+                # only modify schedule if any of this grass was grazed
+                if consumed_dict[g_label] > 0 or consumed_dict[d_label] > 0:
+                    schedule = os.path.join(args[u'century_dir'],
+                                            (grass['label'] + '.sch'))
+                    target_dict = cent.find_target_month(add_event, schedule,
+                                                         date, 1)
+                    new_code = cent.add_new_graz_level(grass, consumed_dict,
+                                                       graz_file,
+                                                       args[u'template_level'],
+                                                       args[u'outdir'], step)
+                    cent.modify_schedule(schedule, add_event, target_dict,
+                                         new_code, args[u'outdir'], step)
 
                 # call CENTURY from the batch file
                 century_bat = os.path.join(args[u'century_dir'],
@@ -377,10 +386,6 @@ def execute(args):
                         except OSError:
                             print 'OSError in moving %s, trying again' % file
                             time.sleep(1.0)
-                            
-                        #shutil.copyfile(os.path.join(args[u'century_dir'], file),
-                        #                os.path.join(intermediate_dir, file))
-                        #os.remove(os.path.join(args[u'century_dir'], file))
     finally:
         # replace graz params used by CENTURY with original file
         os.remove(graz_file)
@@ -403,6 +408,10 @@ def execute(args):
                                    '_hist.bat')))
             os.remove(os.path.join(args[u'input_dir'], (grass['label'] +
                                    '.bat')))
+            for ext in ['.lis', '.bin', '_log.txt']:
+                obj = os.path.join(args[u'century_dir'], grass['label'] + ext)
+                if os.path.isfile(obj):
+                    os.remove(obj)
         filled_dict = forage.fill_dict(results_dict, 'NA')
         df = pandas.DataFrame(filled_dict)
         df.to_csv(os.path.join(args['outdir'], 'summary_results.csv'))
