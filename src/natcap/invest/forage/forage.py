@@ -165,9 +165,9 @@ def execute(args):
         file_list = [hist_bat, extend_bat, e_schedule, h_schedule, site_file]
         if os.path.isfile(weather_file):
             file_list.append(weather_file)
-        for file in file_list:
-            shutil.copyfile(file, os.path.join(args[u'century_dir'],
-                                               os.path.basename(file)))
+        for file_name in file_list:
+            shutil.copyfile(file_name, os.path.join(args[u'century_dir'],
+                                               os.path.basename(file_name)))
         # run CENTURY for spin-up for each grass type up to start_year and
         # start_month                                       
         hist_bat = os.path.join(args[u'century_dir'], (grass['label'] +
@@ -193,225 +193,227 @@ def execute(args):
         if not os.path.exists(intermediate_dir):
             os.makedirs(intermediate_dir)
         to_move = century_outputs + spin_up_outputs
-        for file in to_move:
-            shutil.copyfile(os.path.join(args[u'century_dir'], file),
-                            os.path.join(intermediate_dir, file))
-            os.remove(os.path.join(args[u'century_dir'], file))
+        for file_name in to_move:
+            shutil.copyfile(os.path.join(args[u'century_dir'], file_name),
+                            os.path.join(intermediate_dir, file_name))
+            os.remove(os.path.join(args[u'century_dir'], file_name))
             
     stocking_density_dict = forage.populate_sd_dict(herbivore_list)
     total_SD = forage.calc_total_stocking_density(herbivore_list)
     site = forage.SiteInfo(args[u'steepness'], args[u'latitude'])
     threshold_exceeded = 0
-    try:
-        for step in xrange(args[u'num_months']):
-            step_month = args[u'start_month'] + step
-            if step_month > 12:
-                mod = step_month % 12
-                if mod == 0:
-                    month = 12
-                else:
-                    month = mod
+    
+    for step in xrange(args[u'num_months']):
+        step_month = args[u'start_month'] + step
+        if step_month > 12:
+            mod = step_month % 12
+            if mod == 0:
+                month = 12
             else:
-                month = step_month
-            year = (step / 12) + args[u'start_year']
-            if month == 1 and args['restart_yearly'] and \
-                                            args[u'herbivore_csv'] is not None:
-                threshold_exceeded = 0
-                herbivore_list = []
-                for h_class in herbivore_input:
-                    herd = forage.HerbivoreClass(h_class)
-                    herd.update()
-                    herbivore_list.append(herd)
-            # get biomass and crude protein for each grass type from CENTURY
-            for grass in grass_list:
-                output_file = os.path.join(intermediate_dir,
-                                           grass['label'] + '.lis')
-                outputs = cent.read_CENTURY_outputs(output_file,
-                                                    year - 1,
-                                                    year + 1)
-                outputs.drop_duplicates(inplace=True)
-                target_month = cent.find_prev_month(year, month)
-                grass['prev_g_gm2'] = grass['green_gm2']
-                grass['prev_d_gm2'] = grass['dead_gm2']
-                try:
-                    grass['green_gm2'] = outputs.loc[target_month, 'aglivc']
-                except KeyError:
-                    raise Exception("CENTURY outputs not as expected")
-                grass['dead_gm2'] = outputs.loc[target_month, 'stdedc']
-                if not args[u'user_define_protein']:
-                    grass['cprotein_green'] = (outputs.loc[target_month,
-                                               'aglive1'] / outputs.loc[
-                                               target_month, 'aglivc'])
-                    grass['cprotein_dead'] = (outputs.loc[target_month,
-                                              'stdede1'] / outputs.loc[
-                                              target_month, 'stdedc'])
-            if step == 0:
-                available_forage = forage.calc_feed_types(grass_list)
-            else:
-                available_forage = forage.update_feed_types(grass_list,
-                                                            available_forage)
-            results_dict['step'].append(step)
-            results_dict['year'].append(year)
-            results_dict['month'].append(month)
+                month = mod
+        else:
+            month = step_month
+        year = (step / 12) + args[u'start_year']
+        if month == 1 and args['restart_yearly'] and \
+                                        args[u'herbivore_csv'] is not None:
+            threshold_exceeded = 0
+            herbivore_list = []
+            for h_class in herbivore_input:
+                herd = forage.HerbivoreClass(h_class)
+                herd.update()
+                herbivore_list.append(herd)
+        # get biomass and crude protein for each grass type from CENTURY
+        for grass in grass_list:
+            output_file = os.path.join(intermediate_dir,
+                                       grass['label'] + '.lis')
+            outputs = cent.read_CENTURY_outputs(output_file,
+                                                year - 1,
+                                                year + 1)
+            outputs.drop_duplicates(inplace=True)
+            target_month = cent.find_prev_month(year, month)
+            grass['prev_g_gm2'] = grass['green_gm2']
+            grass['prev_d_gm2'] = grass['dead_gm2']
+            try:
+                grass['green_gm2'] = outputs.loc[target_month, 'aglivc']
+            except KeyError:
+                raise Exception("CENTURY outputs not as expected")
+            grass['dead_gm2'] = outputs.loc[target_month, 'stdedc']
+            if not args[u'user_define_protein']:
+                grass['cprotein_green'] = (outputs.loc[target_month,
+                                           'aglive1'] / outputs.loc[
+                                           target_month, 'aglivc'])
+                grass['cprotein_dead'] = (outputs.loc[target_month,
+                                          'stdede1'] / outputs.loc[
+                                          target_month, 'stdedc'])
+        if step == 0:
+            available_forage = forage.calc_feed_types(grass_list)
+        else:
+            available_forage = forage.update_feed_types(grass_list,
+                                                        available_forage)
+        results_dict['step'].append(step)
+        results_dict['year'].append(year)
+        results_dict['month'].append(month)
+        for feed_type in available_forage:
+            results_dict[feed_type.label + '_' + feed_type.green_or_dead +
+                         '_kgha'].append(feed_type.biomass)
+
+        if not args[u'user_define_digestibility']:
             for feed_type in available_forage:
-                results_dict[feed_type.label + '_' + feed_type.green_or_dead +
-                             '_kgha'].append(feed_type.biomass)
+                feed_type.calc_digestibility_from_protein()
 
-            if not args[u'user_define_digestibility']:
-                for feed_type in available_forage:
-                    feed_type.calc_digestibility_from_protein()
+        total_biomass = forage.calc_total_biomass(available_forage)
+        if step == 0:
+            # threshold biomass, amount of biomass required to be left
+            # standing (kg per ha)
+            threshold_biomass = total_biomass * float(
+                                args[u'mgmt_threshold'])
+        diet_dict = {}        
+        for herb_class in herbivore_list:
+            herb_class.calc_distance_walked(total_SD, site.S,
+                                            available_forage)
+            max_intake = herb_class.calc_max_intake()
 
-            total_biomass = forage.calc_total_biomass(available_forage)
-            if step == 0:
-                # threshold biomass, amount of biomass required to be left
-                # standing (kg per ha)
-                threshold_biomass = total_biomass * float(
-                                    args[u'mgmt_threshold'])
-            diet_dict = {}        
-            for herb_class in herbivore_list:
-                herb_class.calc_distance_walked(total_SD, site.S,
-                                                available_forage)
-                max_intake = herb_class.calc_max_intake()
-
-                ZF = herb_class.calc_ZF()
-                HR = forage.calc_relative_height(available_forage)
-                diet = forage.diet_selection_t2(ZF, HR, args[u'prop_legume'],
-                                                supp_available, supp,
-                                                max_intake, herb_class.FParam,
-                                                available_forage)
+            ZF = herb_class.calc_ZF()
+            HR = forage.calc_relative_height(available_forage)
+            diet = forage.diet_selection_t2(ZF, HR, args[u'prop_legume'],
+                                            supp_available, supp,
+                                            max_intake, herb_class.FParam,
+                                            available_forage)
+            diet_interm = forage.calc_diet_intermediates(
+                            diet, supp, herb_class, site,
+                            args[u'prop_legume'], args[u'DOY'])
+            # if herb_class.type != 'hindgut_fermenter':
+                # reduced_max_intake = forage.check_max_intake(diet,
+                                                             # diet_interm,
+                                                             # herb_class,
+                                                             # max_intake)
+                # if reduced_max_intake < max_intake:
+                    # diet = forage.diet_selection_t2(ZF, HR,
+                                                    # args[u'prop_legume'],
+                                                    # supp_available, supp,
+                                                    # reduced_max_intake,
+                                                    # herb_class.FParam,
+                                                    # available_forage)
+            diet_dict[herb_class.label] = diet
+        forage.reduce_demand(diet_dict, stocking_density_dict,
+                             available_forage)
+        total_intake_step = forage.calc_total_intake(diet_dict,
+                                                     stocking_density_dict)
+        if (total_biomass - total_intake_step) < threshold_biomass:
+            print "Forage consumed violates management threshold"
+            threshold_exceeded = 1
+            total_intake_step = 0
+        for herb_class in herbivore_list:
+            if threshold_exceeded:
+                diet_dict[herb_class.label] = forage.Diet()
+            diet = diet_dict[herb_class.label]
+            if herb_class.type != 'hindgut_fermenter':
                 diet_interm = forage.calc_diet_intermediates(
-                                diet, supp, herb_class, site,
-                                args[u'prop_legume'], args[u'DOY'])
-                # if herb_class.type != 'hindgut_fermenter':
-                    # reduced_max_intake = forage.check_max_intake(diet,
-                                                                 # diet_interm,
-                                                                 # herb_class,
-                                                                 # max_intake)
-                    # if reduced_max_intake < max_intake:
-                        # diet = forage.diet_selection_t2(ZF, HR,
-                                                        # args[u'prop_legume'],
-                                                        # supp_available, supp,
-                                                        # reduced_max_intake,
-                                                        # herb_class.FParam,
-                                                        # available_forage)
-                diet_dict[herb_class.label] = diet
-            forage.reduce_demand(diet_dict, stocking_density_dict,
-                                 available_forage)
-            total_intake_step = forage.calc_total_intake(diet_dict,
-                                                         stocking_density_dict)
-            if (total_biomass - total_intake_step) < threshold_biomass:
-                print "Forage consumed violates management threshold"
-                threshold_exceeded = 1
-                total_intake_step = 0
-            for herb_class in herbivore_list:
-                if threshold_exceeded:
-                    diet_dict[herb_class.label] = forage.Diet()
-                diet = diet_dict[herb_class.label]
-                if herb_class.type != 'hindgut_fermenter':
-                    diet_interm = forage.calc_diet_intermediates(
-                                            diet, supp, herb_class, site,
-                                            args[u'prop_legume'], args[u'DOY'])
-                    if herb_class.sex == 'lac_female':
-                        milk_production = forage.check_milk_production(
-                                                             herb_class.FParam,
-                                                             diet_interm)
-                        milk_kg_day = herb_class.calc_milk_yield(
-                                                               milk_production)
-                    if threshold_exceeded:
-                        delta_W = -(forage.convert_step_to_daily(herb_class.W))
-                    else:
-                        delta_W = forage.calc_delta_weight(diet_interm, herb_class)
-                    delta_W_step = forage.convert_daily_to_step(delta_W)
-                    herb_class.update(delta_weight=delta_W_step,
-                                      delta_time=forage.find_days_per_step())
-
-                results_dict[herb_class.label + '_kg'].append(herb_class.W)
-                results_dict[herb_class.label + '_gain_kg'].append(
-                                                                  delta_W_step)
-                results_dict[herb_class.label +
-                             '_intake_forage_per_indiv_kg'].append(
-                                         forage.convert_daily_to_step(diet.If))
+                                        diet, supp, herb_class, site,
+                                        args[u'prop_legume'], args[u'DOY'])
                 if herb_class.sex == 'lac_female':
-                    results_dict['milk_prod_kg'].append(
-                                     forage.convert_daily_to_step(milk_kg_day))
+                    milk_production = forage.check_milk_production(
+                                                         herb_class.FParam,
+                                                         diet_interm)
+                    milk_kg_day = herb_class.calc_milk_yield(
+                                                           milk_production)
+                if threshold_exceeded:
+                    delta_W = -(forage.convert_step_to_daily(herb_class.W))
+                else:
+                    delta_W = forage.calc_delta_weight(diet_interm,
+                                                       herb_class)
+                delta_W_step = forage.convert_daily_to_step(delta_W)
+                herb_class.update(delta_weight=delta_W_step,
+                                  delta_time=forage.find_days_per_step())
 
-            # calculate percent live and dead removed for each grass type
-            consumed_dict = forage.calc_percent_consumed(available_forage,
-                                                         diet_dict,
-                                                         stocking_density_dict)
+            results_dict[herb_class.label + '_kg'].append(herb_class.W)
+            results_dict[herb_class.label + '_gain_kg'].append(
+                                                              delta_W_step)
+            results_dict[herb_class.label +
+                         '_intake_forage_per_indiv_kg'].append(
+                                     forage.convert_daily_to_step(diet.If))
+            if herb_class.sex == 'lac_female':
+                results_dict['milk_prod_kg'].append(
+                                 forage.convert_daily_to_step(milk_kg_day))
 
-            results_dict['total_offtake'].append(total_intake_step)
-            # send to CENTURY for this month's scheduled grazing event
-            date = year + float('%.2f' % (month / 12.))
-            for grass in grass_list:
-                g_label = ';'.join([grass['label'], 'green'])
-                d_label = ';'.join([grass['label'], 'dead'])
-                # only modify schedule if any of this grass was grazed
-                if consumed_dict[g_label] > 0 or consumed_dict[d_label] > 0:
-                    schedule = os.path.join(args[u'century_dir'],
-                                            (grass['label'] + '.sch'))
-                    target_dict = cent.find_target_month(add_event, schedule,
-                                                         date, 1)
-                    new_code = cent.add_new_graz_level(grass, consumed_dict,
-                                                       graz_file,
-                                                       args[u'template_level'],
-                                                       args[u'outdir'], step)
-                    cent.modify_schedule(schedule, add_event, target_dict,
-                                         new_code, args[u'outdir'], step)
+        # calculate percent live and dead removed for each grass type
+        consumed_dict = forage.calc_percent_consumed(available_forage,
+                                                     diet_dict,
+                                                     stocking_density_dict)
 
-                # call CENTURY from the batch file
-                century_bat = os.path.join(args[u'century_dir'],
-                                           (grass['label'] + '.bat'))
-                p = Popen(["cmd.exe", "/c " + century_bat],
-                          cwd=args[u'century_dir'])
-                stdout, stderr = p.communicate()
-                p.wait()
-                cent.check_CENTURY_log(os.path.join(args[u'century_dir'],
-                                       grass['label']+'_log.txt'))
-                # save copies of CENTURY outputs, but remove from CENTURY dir
-                intermediate_dir = os.path.join(args['outdir'],
-                                     'CENTURY_outputs_m%d_y%d' % (month, year))
-                if not os.path.exists(intermediate_dir):
-                    os.makedirs(intermediate_dir)
-                for file in century_outputs:
-                    n_tries = 3
-                    while True:
-                        if n_tries == 0: 
-                            break
-                        try:
-                            n_tries -= 1
-                            shutil.move(os.path.join(args[u'century_dir'], file),
-                                        os.path.join(intermediate_dir, file))
-                            break
-                        except OSError:
-                            print 'OSError in moving %s, trying again' % file
-                            time.sleep(1.0)
-    finally:
-        # replace graz params used by CENTURY with original file
-        os.remove(graz_file)
-        shutil.copyfile(os.path.join(args[u'century_dir'], 'graz_orig.100'),
-                        graz_file)
-        os.remove(os.path.join(args[u'century_dir'], 'graz_orig.100'))
-        files_to_remove = [os.path.join(args[u'century_dir'], os.path.basename(
-                                                       f)) for f in file_list]
-        for file in files_to_remove:
-            os.remove(file)
+        results_dict['total_offtake'].append(total_intake_step)
+        # send to CENTURY for this month's scheduled grazing event
+        date = year + float('%.2f' % (month / 12.))
         for grass in grass_list:
-            os.remove(os.path.join(args[u'century_dir'], grass['label']
-                      + '_hist.bin'))
-        for schedule in schedule_list:
-            label = os.path.basename(schedule)[:-4]
-            orig_copy = os.path.join(args[u'input_dir'], label + '_orig.sch')
-            os.remove(orig_copy)
-        for grass in grass_list:
-            os.remove(os.path.join(args[u'input_dir'], (grass['label'] +
-                                   '_hist.bat')))
-            os.remove(os.path.join(args[u'input_dir'], (grass['label'] +
-                                   '.bat')))
-            for ext in ['.lis', '.bin', '_log.txt']:
-                obj = os.path.join(args[u'century_dir'], grass['label'] + ext)
-                if os.path.isfile(obj):
-                    os.remove(obj)
-        filled_dict = forage.fill_dict(results_dict, 'NA')
-        df = pandas.DataFrame(filled_dict)
-        df.to_csv(os.path.join(args['outdir'], 'summary_results.csv'))
+            g_label = ';'.join([grass['label'], 'green'])
+            d_label = ';'.join([grass['label'], 'dead'])
+            # only modify schedule if any of this grass was grazed
+            if consumed_dict[g_label] > 0 or consumed_dict[d_label] > 0:
+                schedule = os.path.join(args[u'century_dir'],
+                                        (grass['label'] + '.sch'))
+                target_dict = cent.find_target_month(add_event, schedule,
+                                                     date, 1)
+                new_code = cent.add_new_graz_level(grass, consumed_dict,
+                                                   graz_file,
+                                                   args[u'template_level'],
+                                                   args[u'outdir'], step)
+                cent.modify_schedule(schedule, add_event, target_dict,
+                                     new_code, args[u'outdir'], step)
+
+            # call CENTURY from the batch file
+            century_bat = os.path.join(args[u'century_dir'],
+                                       (grass['label'] + '.bat'))
+            p = Popen(["cmd.exe", "/c " + century_bat],
+                      cwd=args[u'century_dir'])
+            stdout, stderr = p.communicate()
+            p.wait()
+            cent.check_CENTURY_log(os.path.join(args[u'century_dir'],
+                                   grass['label']+'_log.txt'))
+            # save copies of CENTURY outputs, but remove from CENTURY dir
+            intermediate_dir = os.path.join(args['outdir'],
+                                 'CENTURY_outputs_m%d_y%d' % (month, year))
+            if not os.path.exists(intermediate_dir):
+                os.makedirs(intermediate_dir)
+            for file_name in century_outputs:
+                n_tries = 3
+                while True:
+                    if n_tries == 0: 
+                        break
+                    try:
+                        n_tries -= 1
+                        shutil.move(os.path.join(args[u'century_dir'], file_name),
+                                    os.path.join(intermediate_dir, file_name))
+                        break
+                    except OSError:
+                        print 'OSError in moving %s, trying again' % file_name
+                        time.sleep(1.0)
+    
+    ### Cleanup files
+    # replace graz params used by CENTURY with original file
+    os.remove(graz_file)
+    shutil.copyfile(os.path.join(args[u'century_dir'], 'graz_orig.100'),
+                    graz_file)
+    os.remove(os.path.join(args[u'century_dir'], 'graz_orig.100'))
+    files_to_remove = [os.path.join(args[u'century_dir'], os.path.basename(
+                                                   f)) for f in file_list]
+    for file_name in files_to_remove:
+        os.remove(file_name)
+    for grass in grass_list:
+        os.remove(os.path.join(args[u'century_dir'], grass['label']
+                  + '_hist.bin'))
+    for schedule in schedule_list:
+        label = os.path.basename(schedule)[:-4]
+        orig_copy = os.path.join(args[u'input_dir'], label + '_orig.sch')
+        os.remove(orig_copy)
+    for grass in grass_list:
+        os.remove(os.path.join(args[u'input_dir'], (grass['label'] +
+                               '_hist.bat')))
+        os.remove(os.path.join(args[u'input_dir'], (grass['label'] +
+                               '.bat')))
+        for ext in ['.lis', '.bin', '_log.txt']:
+            obj = os.path.join(args[u'century_dir'], grass['label'] + ext)
+            if os.path.isfile(obj):
+                os.remove(obj)
+    filled_dict = forage.fill_dict(results_dict, 'NA')
+    df = pandas.DataFrame(filled_dict)
+    df.to_csv(os.path.join(args['outdir'], 'summary_results.csv'))

@@ -287,7 +287,7 @@ class HerbivoreClass:
 
         self.Wprev = self.W
         self.W = self.W + delta_weight
-        if self.W < 1:
+        if self.W < self.Wbirth:
             self.W = 0
         self.A = self.A + delta_time
         self.Nmax = self.SRW - (self.SRW - self.Wbirth) * math.exp(

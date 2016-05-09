@@ -83,6 +83,7 @@ def modify_intensity(diff, graz_file, graz_level, outdir, suffix):
         
     increment = 0.1  # TODO this should be dynamic
     fh, abs_path = mkstemp()
+    os.close(fh)
     try:
         with open(abs_path, 'wb') as new_file:
             with open(graz_file, 'rb') as old_file:
@@ -122,6 +123,7 @@ def modify_intensity(diff, graz_file, graz_level, outdir, suffix):
         new_graz_params = os.path.join(outdir, ('graz_' + str(suffix) + '.100'))
         shutil.copyfile(abs_path, new_graz_params)
         shutil.copyfile(abs_path, graz_file)
+        os.remove(abs_path)
         return 1
 
 def read_block_schedule(schedule):
@@ -489,6 +491,7 @@ def modify_schedule(schedule, add_event, target_dict, graz_level, outdir,
     success = 0
     try:
         fh, abs_path = mkstemp()
+        os.close(fh)
         with open(abs_path, 'wb') as new_file:
             with open(schedule, 'rb') as sch:
                 for line in sch:
@@ -544,6 +547,7 @@ def modify_schedule(schedule, add_event, target_dict, graz_level, outdir,
         shutil.copyfile(abs_path, new_sch)
         # replace the schedule used by CENTURY with this modified schedule
         shutil.copyfile(abs_path, schedule)
+        os.remove(abs_path)
         return
         
 def add_new_graz_level(grass, consumed, graz_file, template_level, outdir,
@@ -558,6 +562,7 @@ def add_new_graz_level(grass, consumed, graz_file, template_level, outdir,
     existing_codes = []
     # make copy of graz.100
     fh, abs_path = mkstemp()
+    os.close(fh)
     try:
         template = []
         with open(abs_path, 'wb') as new_file:
@@ -600,6 +605,7 @@ def add_new_graz_level(grass, consumed, graz_file, template_level, outdir,
         shutil.copyfile(abs_path, new_graz_params)
         # replace the graz params used by CENTURY with this modified file
         shutil.copyfile(abs_path, graz_file)
+        os.remove(abs_path)
         return new_code
 
 def find_prev_month(year, month):
