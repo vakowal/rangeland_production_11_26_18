@@ -524,13 +524,14 @@ def diet_selection_t2(ZF, HR, prop_legume, supp_available, supp, Imax, FParam,
         RQ.append(1. - FParam.CR3 * (FParam.CR1 - (1. - prop_legume)  # eq 21
                   * available_forage[f_index].SF -
                   available_forage[f_index].digestibility))
-        if (RQ[f_index] <= supp.RQ or force_supp) and supp_available:
-            supp_selected = 1
-            supp_available = 0
-            Fs = min((supp.DMO / Imax) / supp.RQ, UC, FParam.CR11 /
-                      supp.M_per_D)  # eq 23
-            sum_prev_classes += Fs
-            UC = max(0., 1. - sum_prev_classes)
+        if supp_available:
+            if RQ[f_index] <= supp.RQ or force_supp:
+                supp_selected = 1
+                supp_available = 0
+                Fs = min((supp.DMO / Imax) / supp.RQ, UC, FParam.CR11 /
+                          supp.M_per_D)  # eq 23
+                sum_prev_classes += Fs
+                UC = max(0., 1. - sum_prev_classes)
         HF.append(1. - FParam.CR12 + FParam.CR12 * HR[f_index])  # eq 18
         RT.append(1. + FParam.CR5 * math.exp(-(1. + FParam.CR13 *  # eq 17
             available_forage[f_index].rel_availability) *
