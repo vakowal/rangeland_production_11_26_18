@@ -274,7 +274,8 @@ def execute(args):
                 diet = forage.diet_selection_t2(ZF, HR, args[u'prop_legume'],
                                                 supp_available, supp,
                                                 max_intake, herb_class.FParam,
-                                                available_forage)
+                                                available_forage,
+                                                herb_class.f_w, herb_class.q_w)
                 diet_interm = forage.calc_diet_intermediates(
                                 diet, supp, herb_class, site,
                                 args[u'prop_legume'], args[u'DOY'])
