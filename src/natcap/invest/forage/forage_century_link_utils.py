@@ -8,6 +8,8 @@ from tempfile import mkstemp
 import shutil
 import random
 import string
+from subprocess import Popen
+import time
 
 global _century_dir
 
@@ -17,23 +19,32 @@ pandas.options.mode.chained_assignment = None
 def set_century_directory(century_dir):
     global _century_dir
     _century_dir = century_dir
-    
-def check_CENTURY_log(filename):
-    """Check that CENTURY completed successfully. If not, raise an exception."""
 
+def launch_CENTURY_subprocess(bat_file):
+    """Launch CENTURY subprocess and check that it completed successfully."""
+    
+    p = Popen(["cmd.exe", "/c " + bat_file], cwd=_century_dir)
+    stdout, stderr = p.communicate()
+    p.wait()
+    log_file = bat_file[:-4] + "_log.txt"
     success = 0
     error = []
-    with open(filename, 'r') as file:
-        for line in file:
-            if 'Execution success.' in line:
-                success = 1
-                break
-    if not success:
-        with open(filename, 'r') as file:
-            error = [line.strip() for line in file]
-            if len(error) == 0:
-                error = "CENTURY log file is empty"
-            raise Exception(error)
+    num_tries = 3
+    tries = 0
+    while tries < num_tries:
+        with open(log_file, 'r') as file:
+            for line in file:
+                if 'Execution success.' in line:
+                    success = 1
+                    return
+        if not success:
+            with open(log_file, 'r') as file:
+                error = [line.strip() for line in file]
+                if len(error) == 0:
+                    error = "CENTURY log file is empty"
+                time.sleep(1.0)
+                tries = tries + 1
+    raise Exception(error)
             
 def read_graz_params(graz_file):
     """Tabulate the values for flgrem (fraction live above-ground biomass

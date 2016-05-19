@@ -235,6 +235,20 @@ class HerbivoreClass:
         self.Z_abs = -1.
         self.BC = -1.
         self.D = -1.
+        self.f_w = 0
+        self.q_w = 0
+        
+        # quality and quantity weights
+        try:
+            if inputs_dict['qual_weight'] is not None:
+                self.q_w = inputs_dict['qual_weight']
+        except KeyError:
+            pass
+        try:
+            if inputs_dict['quant_weight'] is not None:
+                self.f_w = inputs_dict['quant_weight']
+        except KeyError:
+            pass
         
         # calibration parameters
         try:
@@ -486,7 +500,7 @@ class DietIntermediates:
         self.MEItotal = 0.
 
 def diet_selection_t2(ZF, HR, prop_legume, supp_available, supp, Imax, FParam,
-                      available_forage, force_supp=None):
+                      available_forage, f_w=0, q_w=0, force_supp=None):
     """Perform diet selection for an individual herbivore, tier 2.  This
     function calculates relative availability, F (including factors like
     pasture height and animal mouth size) and relative ingestibility, RQ 
@@ -515,6 +529,7 @@ def diet_selection_t2(ZF, HR, prop_legume, supp_available, supp, Imax, FParam,
     HF = list()
     RQ = list()
     R = list()
+    R_w = list()
     I = list()
     sum_prev_classes = 0.
     UC = 1.
@@ -544,9 +559,17 @@ def diet_selection_t2(ZF, HR, prop_legume, supp_available, supp, Imax, FParam,
         sum_prev_classes += F[f_index]
         UC = max(0., 1. - sum_prev_classes)  # eq 15
     for f_index in range(len(available_forage)):
+        # original GRAZPLAN formulation
         R.append(F[f_index] * RQ[f_index] * (1. + FParam.CR2 * sum_prev_classes
                 ** 2 * prop_legume))  # eq 20
-        I.append(Imax * R[f_index])  # eq 27
+        # weight proportional intake by quantity weight and quality weight
+        R_w.append(R[f_index] + F[f_index]*f_w + RQ[f_index]*q_w)
+    # rescale weighted proportions to retain original sum of R
+    sum_Rw = sum(R_w)
+    for f_index in range(len(available_forage)):
+        R_w[f_index] = (R_w[f_index] / sum_Rw) * sum(R)
+    for f_index in range(len(available_forage)):    
+        I.append(Imax * R_w[f_index])  # eq 27
         diet_selected.DMDf += (I[f_index] *
                                available_forage[f_index].digestibility)
         diet_selected.CPIf += (I[f_index] *
