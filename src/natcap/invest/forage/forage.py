@@ -64,6 +64,7 @@ def execute(args):
             necessary descriptors of supplemental feed (optional)
         args['restart_yearly'] - re-initialize the animal herd every year?
             hack-y option for CGIAR Peru integration with SWAT.
+        args['diet_verbose'] - save details of diet selection?
 
         returns nothing."""
 
@@ -72,7 +73,8 @@ def execute(args):
     steps_per_year = forage.find_steps_per_year()
     graz_file = os.path.join(args[u'century_dir'], 'graz.100')
     cent.set_century_directory(args[u'century_dir'])
-    
+    if args['diet_verbose']:
+        master_diet_dict = {}
     herbivore_list = []
     if args[u'herbivore_csv'] is not None:
         herbivore_input = (pandas.read_csv(args[u'herbivore_csv'])).to_dict(
@@ -235,12 +237,19 @@ def execute(args):
                     raise Exception("CENTURY outputs not as expected")
                 grass['dead_gm2'] = outputs.loc[target_month, 'stdedc']
                 if not args[u'user_define_protein']:
+                    try:
+                        N_mult = grass['N_multiplier']
+                    except KeyError:
+                        N_mult = 1
                     grass['cprotein_green'] = (outputs.loc[target_month,
                                                'aglive1'] / outputs.loc[
-                                               target_month, 'aglivc'])
+                                               target_month, 'aglivc']
+                                               * N_mult)
+                                               
                     grass['cprotein_dead'] = (outputs.loc[target_month,
                                               'stdede1'] / outputs.loc[
-                                              target_month, 'stdedc'])
+                                              target_month, 'stdedc']
+                                              * N_mult)
             if step == 0:
                 available_forage = forage.calc_feed_types(grass_list)
             else:
@@ -279,21 +288,24 @@ def execute(args):
                 diet_interm = forage.calc_diet_intermediates(
                                 diet, supp, herb_class, site,
                                 args[u'prop_legume'], args[u'DOY'])
-                # if herb_class.type != 'hindgut_fermenter':
-                    # reduced_max_intake = forage.check_max_intake(diet,
-                                                                 # diet_interm,
-                                                                 # herb_class,
-                                                                 # max_intake)
-                    # if reduced_max_intake < max_intake:
-                        # diet = forage.diet_selection_t2(ZF, HR,
-                                                        # args[u'prop_legume'],
-                                                        # supp_available, supp,
-                                                        # reduced_max_intake,
-                                                        # herb_class.FParam,
-                                                        # available_forage)
+                if herb_class.type != 'hindgut_fermenter':
+                    reduced_max_intake = forage.check_max_intake(diet,
+                                                                 diet_interm,
+                                                                 herb_class,
+                                                                 max_intake)
+                    if reduced_max_intake < max_intake:
+                        diet = forage.diet_selection_t2(ZF, HR,
+                                                        args[u'prop_legume'],
+                                                        supp_available, supp,
+                                                        reduced_max_intake,
+                                                        herb_class.FParam,
+                                                        available_forage)
                 diet_dict[herb_class.label] = diet
             forage.reduce_demand(diet_dict, stocking_density_dict,
                                  available_forage)
+            if args['diet_verbose']:
+                # save diet_dict across steps to be written out later
+                master_diet_dict[step] = diet_dict
             total_intake_step = forage.calc_total_intake(diet_dict,
                                                          stocking_density_dict)
             if (total_biomass - total_intake_step) < threshold_biomass:
@@ -413,6 +425,22 @@ def execute(args):
                 obj = os.path.join(args[u'century_dir'], grass['label'] + ext)
                 if os.path.isfile(obj):
                     os.remove(obj)
+        if args['diet_verbose']:
+            for h_label in master_diet_dict[0].keys():
+                new_dict = {}
+                new_dict['step'] = master_diet_dict.keys()
+                new_dict['DMDf'] = [master_diet_dict[step][h_label].DMDf for
+                                    step in master_diet_dict.keys()]
+                new_dict['CPIf'] = [master_diet_dict[step][h_label].CPIf for
+                                    step in master_diet_dict.keys()]
+                grass_labels = master_diet_dict[0][h_label].intake.keys()
+                for g_label in grass_labels:
+                    new_dict['intake_' + g_label] = \
+                            [master_diet_dict[step][h_label].intake[g_label] for
+                             step in master_diet_dict.keys()]
+                df = pandas.DataFrame(new_dict)
+                save_as = os.path.join(args['outdir'], h_label + 'diet.csv')
+                df.to_csv(save_as, index=False)
         filled_dict = forage.fill_dict(results_dict, 'NA')
         df = pandas.DataFrame(filled_dict)
         df.to_csv(os.path.join(args['outdir'], 'summary_results.csv'))
