@@ -2,6 +2,7 @@
 
 # Equations (eq) refer to Freer et al. 2012
 
+import os
 import sys
 import math
 from operator import attrgetter
@@ -1093,3 +1094,16 @@ def fill_dict(d_fill, fill_val):
             for diff_val in xrange(max_len - len(d_fill[key])):
                 d_fill[key].append(fill_val)
     return d_fill
+
+def write_inputs_log(args, now_str):
+    """Write model inputs to a text file."""
+    
+    save_as = os.path.join(args['outdir'], "forage-log-%s.txt" % now_str)
+    with open(save_as, 'w') as new_file:
+        new_file.write("Rangeland production model launched %s\n" % now_str)
+        new_file.write("\n\n")
+        new_file.write("Arguments:\n")
+        for key in args.keys():
+            new_file.write('%s: %s\n' % (key, args[key]))
+            # new_file.write("\n\n")
+            

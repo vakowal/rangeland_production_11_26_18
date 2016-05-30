@@ -2,6 +2,7 @@
 
 import os
 import sys
+import re
 import math
 import pandas
 from tempfile import mkstemp
@@ -641,4 +642,27 @@ def convert_to_year_month(CENTURY_date):
         year = int(math.floor(CENTURY_date))
         month = int(round(12. * (CENTURY_date - year)))
     return [year, month]
-        
+
+def get_site_weather_files(schedule_file, input_dir):
+    """Read filename of site and weather file from schedule file supplied to
+    CENTURY."""
+    
+    s_file = 'NA'
+    w_file = 'NA'
+    with open(schedule_file, 'r') as read_file:
+        for line in read_file:
+            if 'Site file name' in line:
+                if s_file != 'NA':
+                    er = "Error: two site files found in schedule file"
+                    raise Exception(er)
+                else:
+                    s_name = re.search('(.+?).100', line).group(1) + '.100'
+                    s_file = os.path.join(input_dir, s_name)
+            if '.wth' in line:
+                if w_file != 'NA':
+                    er = "Error: two weather files found in schedule file"
+                    raise Exception(er)
+                else:
+                    w_name = re.search('(.+?).wth', line).group(1) + '.wth'
+                    w_file = os.path.join(input_dir, w_name)
+    return s_file, w_file

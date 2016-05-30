@@ -19,6 +19,7 @@ import os
 import sys
 import shutil
 import time
+from datetime import datetime
 import pandas
 
 import forage_utils as forage
@@ -68,6 +69,14 @@ def execute(args):
 
         returns nothing."""
 
+    now_str = datetime.now().strftime("%Y-%m-%d--%H_%M_%S")
+    if not os.path.exists(args['outdir']):
+        os.makedirs(args['outdir'])
+    intermediate_dir = os.path.join(args['outdir'],
+                                    'CENTURY_outputs_spin_up')
+    if not os.path.exists(intermediate_dir):
+        os.makedirs(intermediate_dir)
+    forage.write_inputs_log(args, now_str)
     forage.set_time_step('month')  # current default, enforced by CENTURY
     add_event = 1  # TODO should this ever be 0?
     steps_per_year = forage.find_steps_per_year()
@@ -161,17 +170,16 @@ def execute(args):
                                 '_hist.bat'))
         extend_bat = os.path.join(args[u'input_dir'],
                                   (grass['label'] + '.bat'))
-        site_file = os.path.join(args[u'input_dir'], grass['label'] + '.100')
-        weather_file = os.path.join(args[u'input_dir'],
-                                    grass['label'] + '.wth')
         e_schedule = os.path.join(args[u'input_dir'], grass['label'] + '.sch')
         h_schedule = os.path.join(args[u'input_dir'],
                                   grass['label'] + '_hist.sch')
+        site_file, weather_file = cent.get_site_weather_files(
+                                                e_schedule, args[u'input_dir'])
         grass_files = [hist_bat, extend_bat, e_schedule, h_schedule,
                          site_file]
         for file_name in grass_files:
             file_list.append(file_name)
-        if os.path.isfile(weather_file):
+        if weather_file != 'NA':
             file_list.append(weather_file)
         for file_name in file_list:
             shutil.copyfile(file_name, os.path.join(args[u'century_dir'],
@@ -186,12 +194,6 @@ def execute(args):
         cent.launch_CENTURY_subprocess(century_bat)
         
         # save copies of CENTURY outputs, but remove from CENTURY dir
-        if not os.path.exists(args['outdir']):
-            os.makedirs(args['outdir'])
-        intermediate_dir = os.path.join(args['outdir'],
-                                        'CENTURY_outputs_spin_up')
-        if not os.path.exists(intermediate_dir):
-            os.makedirs(intermediate_dir)
         for file_name in move_outputs:
             shutil.move(os.path.join(args[u'century_dir'], file_name),
                             os.path.join(intermediate_dir, file_name))
@@ -405,6 +407,7 @@ def execute(args):
         shutil.copyfile(os.path.join(args[u'century_dir'], 'graz_orig.100'),
                         graz_file)
         os.remove(os.path.join(args[u'century_dir'], 'graz_orig.100'))
+        file_list = set(file_list)
         files_to_remove = [os.path.join(args[u'century_dir'], os.path.basename(
                                                        f)) for f in file_list]
         for file_name in files_to_remove:
