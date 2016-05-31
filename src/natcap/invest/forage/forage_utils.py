@@ -1102,8 +1102,32 @@ def write_inputs_log(args, now_str):
     with open(save_as, 'w') as new_file:
         new_file.write("Rangeland production model launched %s\n" % now_str)
         new_file.write("\n\n")
-        new_file.write("Arguments:\n")
+        new_file.write("____________________________________")
+        new_file.write("Arguments\n")
+        new_file.write("____________________________________")
         for key in args.keys():
             new_file.write('%s: %s\n' % (key, args[key]))
-            # new_file.write("\n\n")
-            
+
+def calc_diet_segregation(diet_dict):
+    """Calculate the segregation between diets of two herbivores. This is
+    calculated as the average difference in percentage of the diet comprised of
+    each forage type.  So a value of 1 means they eat completely separate grass
+    types. A value of 0 means they select grass types in identical
+    proportions."""
+    
+    perc_lists = []
+    for hclass_label in diet_dict.keys():
+        percent_consumed = []
+        total_consumed = 0.
+        for grass_label in diet_dict[hclass_label].intake.keys():
+            total_consumed = total_consumed + \
+                                    diet_dict[hclass_label].intake[grass_label]
+        for grass_label in diet_dict[hclass_label].intake.keys():
+            percent_consumed.append(
+                    diet_dict[hclass_label].intake[grass_label]/total_consumed)
+        perc_lists.append(percent_consumed)
+    assert len(perc_lists) == 2
+    assert len(perc_lists[0]) == len(perc_lists[1])
+    diff_list = [abs(i - j) for i, j in zip(perc_lists[0], perc_lists[1])]
+    ave_diff = sum(diff_list) / len(diff_list)
+    return ave_diff

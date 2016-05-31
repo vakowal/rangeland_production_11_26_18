@@ -84,6 +84,7 @@ def execute(args):
     cent.set_century_directory(args[u'century_dir'])
     if args['diet_verbose']:
         master_diet_dict = {}
+        diet_segregation_dict = {'step': [], 'segregation': []}
     herbivore_list = []
     if args[u'herbivore_csv'] is not None:
         herbivore_input = (pandas.read_csv(args[u'herbivore_csv'])).to_dict(
@@ -308,6 +309,9 @@ def execute(args):
             if args['diet_verbose']:
                 # save diet_dict across steps to be written out later
                 master_diet_dict[step] = diet_dict
+                diet_segregation = forage.calc_diet_segregation(diet_dict)
+                diet_segregation_dict['step'].append(step)
+                diet_segregation_dict['segregation'].append(diet_segregation)
             total_intake_step = forage.calc_total_intake(diet_dict,
                                                          stocking_density_dict)
             if (total_biomass - total_intake_step) < threshold_biomass:
@@ -318,24 +322,24 @@ def execute(args):
                 if threshold_exceeded:
                     diet_dict[herb_class.label] = forage.Diet()
                 diet = diet_dict[herb_class.label]
-                if herb_class.type != 'hindgut_fermenter':
-                    diet_interm = forage.calc_diet_intermediates(
-                                            diet, supp, herb_class, site,
-                                            args[u'prop_legume'], args[u'DOY'])
-                    if herb_class.sex == 'lac_female':
-                        milk_production = forage.check_milk_production(
-                                                             herb_class.FParam,
-                                                             diet_interm)
-                        milk_kg_day = herb_class.calc_milk_yield(
-                                                               milk_production)
-                    if threshold_exceeded:
-                        delta_W = -(forage.convert_step_to_daily(herb_class.W))
-                    else:
-                        delta_W = forage.calc_delta_weight(diet_interm,
-                                                           herb_class)
-                    delta_W_step = forage.convert_daily_to_step(delta_W)
-                    herb_class.update(delta_weight=delta_W_step,
-                                      delta_time=forage.find_days_per_step())
+                # if herb_class.type != 'hindgut_fermenter':
+                diet_interm = forage.calc_diet_intermediates(
+                                        diet, supp, herb_class, site,
+                                        args[u'prop_legume'], args[u'DOY'])
+                if herb_class.sex == 'lac_female':
+                    milk_production = forage.check_milk_production(
+                                                         herb_class.FParam,
+                                                         diet_interm)
+                    milk_kg_day = herb_class.calc_milk_yield(
+                                                           milk_production)
+                if threshold_exceeded:
+                    delta_W = -(forage.convert_step_to_daily(herb_class.W))
+                else:
+                    delta_W = forage.calc_delta_weight(diet_interm,
+                                                       herb_class)
+                delta_W_step = forage.convert_daily_to_step(delta_W)
+                herb_class.update(delta_weight=delta_W_step,
+                                  delta_time=forage.find_days_per_step())
 
                 results_dict[herb_class.label + '_kg'].append(herb_class.W)
                 results_dict[herb_class.label + '_gain_kg'].append(
@@ -429,6 +433,9 @@ def execute(args):
                 if os.path.isfile(obj):
                     os.remove(obj)
         if args['diet_verbose']:
+            df = pandas.DataFrame(diet_segregation_dict)
+            save_as = os.path.join(args['outdir'], 'diet_segregation.csv')
+            df.to_csv(save_as, index=False)
             for h_label in master_diet_dict[0].keys():
                 new_dict = {}
                 new_dict['step'] = master_diet_dict.keys()
@@ -439,10 +446,10 @@ def execute(args):
                 grass_labels = master_diet_dict[0][h_label].intake.keys()
                 for g_label in grass_labels:
                     new_dict['intake_' + g_label] = \
-                            [master_diet_dict[step][h_label].intake[g_label] for
-                             step in master_diet_dict.keys()]
+                          [master_diet_dict[step][h_label].intake[g_label] for
+                           step in master_diet_dict.keys()]
                 df = pandas.DataFrame(new_dict)
-                save_as = os.path.join(args['outdir'], h_label + 'diet.csv')
+                save_as = os.path.join(args['outdir'], h_label + '_diet.csv')
                 df.to_csv(save_as, index=False)
         filled_dict = forage.fill_dict(results_dict, 'NA')
         df = pandas.DataFrame(filled_dict)
