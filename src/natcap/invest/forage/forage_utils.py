@@ -1102,9 +1102,9 @@ def write_inputs_log(args, now_str):
     with open(save_as, 'w') as new_file:
         new_file.write("Rangeland production model launched %s\n" % now_str)
         new_file.write("\n\n")
-        new_file.write("____________________________________")
+        new_file.write("____________________________________\n")
         new_file.write("Arguments\n")
-        new_file.write("____________________________________")
+        new_file.write("____________________________________\n")
         for key in args.keys():
             new_file.write('%s: %s\n' % (key, args[key]))
 
