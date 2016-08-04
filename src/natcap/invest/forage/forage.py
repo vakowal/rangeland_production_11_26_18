@@ -40,6 +40,8 @@ def execute(args):
         args['start_month'] - initial month, an integer ranging from 1:12
             corresponding to January:December
         args['num_months'] - number of months to run the simulation
+        args['grz_months'] - months when grazing should be applied, where month
+            0 is the first month of the simulation
         args['mgmt_threshold'] - management threshold, the percent of initial
             biomass that must remain (0:1)
         args['input_dir'] - local file directory containing inputs to run
@@ -277,6 +279,12 @@ def execute(args):
                                     args[u'mgmt_threshold'])
             diet_dict = {}        
             for herb_class in herbivore_list:
+                if args['grz_months'] is not None and step not in \
+                                                            args['grz_months']:
+                    diet = forage.Diet()
+                    diet.fill_intake_zero(available_forage)
+                    diet_dict[herb_class.label] = diet
+                    continue
                 herb_class.calc_distance_walked(total_SD, site.S,
                                                 available_forage)
                 max_intake = herb_class.calc_max_intake()
@@ -337,7 +345,11 @@ def execute(args):
                 else:
                     delta_W = forage.calc_delta_weight(diet_interm,
                                                        herb_class)
-                delta_W_step = forage.convert_daily_to_step(delta_W)
+                if args['grz_months'] is not None and step not in \
+                                                            args['grz_months']:
+                    delta_W_step = 0
+                else:
+                    delta_W_step = forage.convert_daily_to_step(delta_W)
                 herb_class.update(delta_weight=delta_W_step,
                                   delta_time=forage.find_days_per_step())
 
@@ -404,6 +416,8 @@ def execute(args):
                             print 'OSError in moving %s, trying again' % \
                                     file_name
                             time.sleep(1.0)
+    except:
+        raise
     finally:
         ### Cleanup files
         # replace graz params used by CENTURY with original file

@@ -479,6 +479,11 @@ class Diet:
                                                                    self.DMDf,
                                                                    self.CPIf,
                                                                    self.intake)
+                                                                   
+    def fill_intake_zero(self, available_forage):
+        for feed_type in available_forage:
+            label_string = ';'.join([feed_type.label, feed_type.green_or_dead])
+            self.intake[label_string] = 0
 
 class DietIntermediates:
 
@@ -679,12 +684,9 @@ def calc_percent_consumed(available_forage, diet_dict, stocking_density_dict):
             consumed = 0.
             for hclass_label in diet_dict.keys():
                 sd = stocking_density_dict[hclass_label]
-                try:
-                    consumed += (convert_daily_to_step(
-                                            diet_dict[hclass_label].intake[
-                                            label_string]) * sd)
-                except KeyError:
-                    continue
+                consumed += (convert_daily_to_step(
+                                        diet_dict[hclass_label].intake[
+                                        label_string]) * sd)
             perc_removed = float(consumed) / feed_type.biomass
         consumed_dict[label_string] = perc_removed
     return consumed_dict
@@ -1115,6 +1117,8 @@ def calc_diet_segregation(diet_dict):
     types. A value of 0 means they select grass types in identical
     proportions."""
     
+    if len(diet_dict.keys()) < 2:
+        return 0
     perc_lists = []
     for hclass_label in diet_dict.keys():
         percent_consumed = []
