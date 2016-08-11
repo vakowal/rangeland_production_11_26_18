@@ -350,9 +350,13 @@ def execute(args):
                     delta_W_step = 0
                 else:
                     delta_W_step = forage.convert_daily_to_step(delta_W)
-                herb_class.update(delta_weight=delta_W_step,
-                                  delta_time=forage.find_days_per_step())
-
+                try:
+                    if not args['restart_monthly']:
+                        herb_class.update(delta_weight=delta_W_step,
+                                        delta_time=forage.find_days_per_step())
+                except KeyError:
+                    herb_class.update(delta_weight=delta_W_step,
+                                      delta_time=forage.find_days_per_step())
                 results_dict[herb_class.label + '_kg'].append(herb_class.W)
                 results_dict[herb_class.label + '_gain_kg'].append(
                                                                   delta_W_step)
