@@ -405,7 +405,7 @@ def execute(args):
                 if not os.path.exists(intermediate_dir):
                     os.makedirs(intermediate_dir)
                 for file_name in century_outputs:
-                    n_tries = 3
+                    n_tries = 6
                     while True:
                         if n_tries == 0: 
                             break
