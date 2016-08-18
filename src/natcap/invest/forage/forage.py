@@ -225,6 +225,11 @@ def execute(args):
                     herd = forage.HerbivoreClass(h_class)
                     herd.update()
                     herbivore_list.append(herd)
+            try:
+                if args['restart_monthly']:
+                    threshold_exceeded = 0
+            except KeyError:
+                continue
             # get biomass and crude protein for each grass type from CENTURY
             for grass in grass_list:
                 output_file = os.path.join(intermediate_dir,

@@ -684,9 +684,12 @@ def calc_percent_consumed(available_forage, diet_dict, stocking_density_dict):
             consumed = 0.
             for hclass_label in diet_dict.keys():
                 sd = stocking_density_dict[hclass_label]
-                consumed += (convert_daily_to_step(
-                                        diet_dict[hclass_label].intake[
-                                        label_string]) * sd)
+                try:
+                    consumed += (convert_daily_to_step(
+                                            diet_dict[hclass_label].intake[
+                                            label_string]) * sd)
+                except KeyError:
+                    continue
             perc_removed = float(consumed) / feed_type.biomass
         consumed_dict[label_string] = perc_removed
     return consumed_dict
