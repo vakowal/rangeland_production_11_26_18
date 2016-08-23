@@ -217,6 +217,8 @@ def execute(args):
             else:
                 month = step_month
             year = (step / 12) + args[u'start_year']
+            if args['restart_monthly']:
+                threshold_exceeded = 0
             if month == 1 and args['restart_yearly'] and \
                                             args[u'herbivore_csv'] is not None:
                 threshold_exceeded = 0
@@ -333,7 +335,9 @@ def execute(args):
                 total_intake_step = 0
             for herb_class in herbivore_list:
                 if threshold_exceeded:
-                    diet_dict[herb_class.label] = forage.Diet()
+                    a_diet = forage.Diet()
+                    a_diet.fill_intake_zero(available_forage)
+                    diet_dict[herb_class.label] = a_diet
                 diet = diet_dict[herb_class.label]
                 # if herb_class.type != 'hindgut_fermenter':
                 diet_interm = forage.calc_diet_intermediates(
@@ -346,7 +350,10 @@ def execute(args):
                     milk_kg_day = herb_class.calc_milk_yield(
                                                            milk_production)
                 if threshold_exceeded:
-                    delta_W = -(forage.convert_step_to_daily(herb_class.W))
+                    if args['restart_monthly']:
+                        delta_W = 0
+                    else:
+                        delta_W = -(forage.convert_step_to_daily(herb_class.W))
                 else:
                     delta_W = forage.calc_delta_weight(diet_interm,
                                                        herb_class)
@@ -359,6 +366,9 @@ def execute(args):
                     if not args['restart_monthly']:
                         herb_class.update(delta_weight=delta_W_step,
                                         delta_time=forage.find_days_per_step())
+                    else:
+                        herb_class.update(delta_weight=delta_W_step,
+                                      delta_time=forage.find_days_per_step())
                 except KeyError:
                     herb_class.update(delta_weight=delta_W_step,
                                       delta_time=forage.find_days_per_step())
