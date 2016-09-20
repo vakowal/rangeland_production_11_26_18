@@ -1019,7 +1019,7 @@ def check_initial_biomass(grass_list):
     for grass in grass_list:
         total_perc_biomass += grass['percent_biomass']
     if total_perc_biomass < 1.:
-        raise ValueError
+        raise ValueError("Initial percent biomass adds to less than 1")
 
 def one_step(site, DOY, herb_class, available_forage, prop_legume,
              supp_available, supp, intake=None, force_supp=None):

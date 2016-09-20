@@ -212,11 +212,13 @@ def execute(args):
                 mod = step_month % 12
                 if mod == 0:
                     month = 12
+                    year = (step_month / 12) + args[u'start_year'] - 1
                 else:
                     month = mod
+                    year = (step_month / 12) + args[u'start_year']
             else:
                 month = step_month
-            year = (step / 12) + args[u'start_year']
+                year = (step / 12) + args[u'start_year']
             if args['restart_monthly']:
                 threshold_exceeded = 0
             if month == 1 and args['restart_yearly'] and \
