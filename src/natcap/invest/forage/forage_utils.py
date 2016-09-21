@@ -709,10 +709,12 @@ def update_feed_types(grass_list, available_forage):
                 if feed_type.green_or_dead == 'green':
                     feed_type.biomass = feed_type.biomass + (perc_grow_g *
                                         feed_type.biomass)
+                    feed_type.crude_protein = grass['cprotein_green']
                     matched_g.append(feed_type.label)
                 elif feed_type.green_or_dead == 'dead':
                     feed_type.biomass = feed_type.biomass + (perc_grow_d *
                                         feed_type.biomass)
+                    feed_type.crude_protein = grass['cprotein_dead']
                     matched_d.append(feed_type.label)
                 else:
                     er = "Error: 'green' or 'dead' expected"
