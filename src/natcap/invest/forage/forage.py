@@ -42,6 +42,8 @@ def execute(args):
         args['num_months'] - number of months to run the simulation
         args['grz_months'] - months when grazing should be applied, where month
             0 is the first month of the simulation
+        args['density_series'] - stocking density by month, where month 0 is
+            the first month of the simulation
         args['mgmt_threshold'] - management threshold, the percent of initial
             biomass that must remain (0:1)
         args['input_dir'] - local file directory containing inputs to run
@@ -70,7 +72,8 @@ def execute(args):
         args['diet_verbose'] - save details of diet selection?
 
         returns nothing."""
-
+    # TODO fill in optional arguments that are empty with 'na' so that we
+    # don't get key errors when they are missing
     now_str = datetime.now().strftime("%Y-%m-%d--%H_%M_%S")
     if not os.path.exists(args['outdir']):
         os.makedirs(args['outdir'])
@@ -294,6 +297,13 @@ def execute(args):
                     diet.fill_intake_zero(available_forage)
                     diet_dict[herb_class.label] = diet
                     continue
+                if args['density_series'] is not None and step in \
+                                                 args['density_series'].keys():
+                    herb_class.stocking_density = args['density_series'][step]
+                    stocking_density_dict = forage.populate_sd_dict(
+                                                                herbivore_list)
+                    total_SD = forage.calc_total_stocking_density(
+                                                                herbivore_list)
                 herb_class.calc_distance_walked(total_SD, site.S,
                                                 available_forage)
                 max_intake = herb_class.calc_max_intake()
