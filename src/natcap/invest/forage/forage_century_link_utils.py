@@ -431,7 +431,7 @@ def find_target_month(add_event, schedule, empirical_date, n_years):
     for i in range(0, schedule_df.shape[0]):
         start_year = schedule_df.loc[i, 'block_start_year']
         last_year = schedule_df.loc[i, 'block_end_year']
-        if empirical_date > start_year and empirical_date <= last_year:
+        if empirical_date > start_year and empirical_date <= last_year + 1:
             break
     
     target_dict['last_year'] = last_year

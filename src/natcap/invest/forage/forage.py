@@ -208,6 +208,30 @@ def execute(args):
     total_SD = forage.calc_total_stocking_density(herbivore_list)
     site = forage.SiteInfo(args[u'steepness'], args[u'latitude'])
     threshold_exceeded = 0
+    
+    # add starting conditions to summary file
+    step = -1
+    step_month = args[u'start_month'] + step
+    if step_month > 12:
+        mod = step_month % 12
+        if mod == 0:
+            month = 12
+            year = (step_month / 12) + args[u'start_year'] - 1
+        else:
+            month = mod
+            year = (step_month / 12) + args[u'start_year']
+    else:
+        month = step_month
+        year = (step / 12) + args[u'start_year']
+    results_dict['step'].append(step)
+    results_dict['year'].append(year)
+    results_dict['month'].append(month)
+    for herb_class in herbivore_list:
+        results_dict[herb_class.label + '_kg'].append(herb_class.W)
+        results_dict[herb_class.label + '_gain_kg'].append('NA')
+        results_dict[herb_class.label +
+                     '_intake_forage_per_indiv_kg'].append('NA')
+        results_dict['total_offtake'].append('NA')
     try:
         for step in xrange(args[u'num_months']):
             step_month = args[u'start_month'] + step
@@ -447,6 +471,40 @@ def execute(args):
                             print 'OSError in moving %s, trying again' % \
                                     file_name
                             time.sleep(1.0)
+        # add final standing biomass to summary file
+        step = args[u'num_months'] + 1
+        step_month = args[u'start_month'] + step
+        if step_month > 12:
+            mod = step_month % 12
+            if mod == 0:
+                month = 12
+                year = (step_month / 12) + args[u'start_year'] - 1
+            else:
+                month = mod
+                year = (step_month / 12) + args[u'start_year']
+        else:
+            month = step_month
+            year = (step / 12) + args[u'start_year']
+        for grass in grass_list:
+            output_file = os.path.join(intermediate_dir,
+                                       grass['label'] + '.lis')
+            outputs = cent.read_CENTURY_outputs(output_file,
+                                                year - 1,
+                                                year + 1)
+            outputs.drop_duplicates(inplace=True)
+            target_month = cent.find_prev_month(year, month)
+            grass['prev_g_gm2'] = grass['green_gm2']
+            grass['prev_d_gm2'] = grass['dead_gm2']
+            try:
+                grass['green_gm2'] = outputs.loc[target_month, 'aglivc']
+            except KeyError:
+                raise Exception("CENTURY outputs not as expected")
+            grass['dead_gm2'] = outputs.loc[target_month, 'stdedc']
+        available_forage = forage.update_feed_types(grass_list,
+                                                    available_forage)
+        for feed_type in available_forage:
+            results_dict[feed_type.label + '_' + feed_type.green_or_dead +
+                         '_kgha'].append(feed_type.biomass)
     except:
         raise
     finally:
