@@ -212,17 +212,12 @@ def execute(args):
     # add starting conditions to summary file
     step = -1
     step_month = args[u'start_month'] + step
-    if step_month > 12:
-        mod = step_month % 12
-        if mod == 0:
-            month = 12
-            year = (step_month / 12) + args[u'start_year'] - 1
-        else:
-            month = mod
-            year = (step_month / 12) + args[u'start_year']
+    if step_month == 0:
+        month = 12
+        year = args[u'start_year'] - 1
     else:
         month = step_month
-        year = (step / 12) + args[u'start_year']
+        year = args[u'start_year']
     results_dict['step'].append(step)
     results_dict['year'].append(year)
     results_dict['month'].append(month)
