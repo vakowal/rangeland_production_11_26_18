@@ -40,10 +40,10 @@ def execute(args):
         args['start_month'] - initial month, an integer ranging from 1:12
             corresponding to January:December
         args['num_months'] - number of months to run the simulation
-        args['grz_months'] - months when grazing should be applied, where month
-            0 is the first month of the simulation
-        args['density_series'] - stocking density by month, where month 0 is
-            the first month of the simulation
+        args['grz_months'] - (optional) months when grazing should be applied,
+            where month 0 is the first month of the simulation
+        args['density_series'] - (optional) stocking density by month, where
+            month 0 is the first month of the simulation
         args['mgmt_threshold'] - management threshold, the percent of initial
             biomass that must remain (0:1)
         args['input_dir'] - local file directory containing inputs to run
@@ -72,8 +72,13 @@ def execute(args):
         args['diet_verbose'] - save details of diet selection?
 
         returns nothing."""
-    # TODO fill in optional arguments that are empty with 'na' so that we
-    # don't get key errors when they are missing
+
+    for opt_arg in ['restart_yearly', 'diet_verbose', 'grz_months',
+                    'density_series']:
+        try:
+            val = args[opt_arg]
+        except KeyError:
+            args[opt_arg] = None
     now_str = datetime.now().strftime("%Y-%m-%d--%H_%M_%S")
     if not os.path.exists(args['outdir']):
         os.makedirs(args['outdir'])
@@ -102,7 +107,6 @@ def execute(args):
                 # herd.check_BC(BC)
             
             herbivore_list.append(herd)
-
     grass_list = (pandas.read_csv(args[u'grass_csv'])).to_dict(
                                                               orient='records')
     forage.check_initial_biomass(grass_list)
@@ -467,8 +471,8 @@ def execute(args):
                                     file_name
                             time.sleep(1.0)
         # add final standing biomass to summary file
-        step = args[u'num_months'] + 1
-        step_month = args[u'start_month'] + step
+        newstep = args[u'num_months']
+        step_month = args[u'start_month'] + newstep
         if step_month > 12:
             mod = step_month % 12
             if mod == 0:
@@ -479,7 +483,7 @@ def execute(args):
                 year = (step_month / 12) + args[u'start_year']
         else:
             month = step_month
-            year = (step / 12) + args[u'start_year']
+            year = (newstep / 12) + args[u'start_year']
         for grass in grass_list:
             output_file = os.path.join(intermediate_dir,
                                        grass['label'] + '.lis')
