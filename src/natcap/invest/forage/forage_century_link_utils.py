@@ -324,7 +324,7 @@ def read_CENTURY_outputs(cent_file, first_year, last_year):
     cent_df = pandas.io.parsers.read_fwf(cent_file, skiprows = [1])
     df_subset = cent_df[(cent_df.time >= first_year) & (cent_df.time < last_year + 1)]
     biomass = df_subset[['time', 'aglivc', 'stdedc', 'aglive(1)', 'stdede(1)']]
-    aglivc = biomass.aglivc * 2.5  # live biomass
+    aglivc = biomass.aglivc * 2.5  # live biomass, g per square m
     biomass.aglivc = aglivc
     stdedc = biomass.stdedc * 2.5  # standing dead biomass
     biomass.stdedc = stdedc
@@ -367,15 +367,14 @@ def write_century_bat(century_dir, century_bat, schedule, output, fix_file,
         
         file.write('erase fix.100\n')
 
-def check_schedule(schedule, n_years, empirical_date):
+def check_schedule(schedule, n_months, empirical_date):
     """Check that the schedule file used to produce CENTURY output can be
     modified by existing methods.  The block containing the empirical date to
-    compare output with must contain n sequential years previous to the
+    compare output with must contain n sequential months previous to the
     empirical date.  The block must also be composed of non-repeating
     sequences because any modification made should only apply to one year, not
     to every 3rd year, every 4th year, etc for example."""
     
-    sufficient = 0
     schedule_df = read_block_schedule(schedule)
     for i in range(0, schedule_df.shape[0]):
         start_year = schedule_df.loc[i, 'block_start_year']
@@ -383,32 +382,56 @@ def check_schedule(schedule, n_years, empirical_date):
         rpt_years = schedule_df.loc[i, 'block_rpt_year']
         if empirical_date > start_year and empirical_date <= last_year + 1:
             # empirical compare date falls in this block
-            if (last_year - start_year) > rpt_years:
+            if (last_year - start_year + 1) > rpt_years:
                 # block contains repeating sequences
                 er = "Error: CENTURY schedule file must contain non-repeating sequence for years to be manipulated"
                 raise Exception(er)
-            else:
-                if (empirical_date - n_years) >= start_year:
-                    sufficient = 1
-    if sufficient:
+            break
+    
+    relative_empirical_year = int(math.floor(empirical_date) - start_year + 1)        
+    empirical_month = int(round((empirical_date - float(math.floor(
+                                 empirical_date))) * 12))
+    first_rel_month, first_rel_year = find_first_month_and_year(
+                                               n_months, empirical_month,
+                                               relative_empirical_year)        
+    first_abs_year = first_rel_year + start_year - 1
+    if first_abs_year >= start_year:
         return
     else:
         er = "Error: CENTURY schedule file does not contain a single block that can be modified"
         raise Exception(er)
 
-def fill_schedule(graz_schedule, first_year, end_year, end_month):
-    """Fill in a grazing schedule, from first_year up to the end_year and
-    end_month, with months where grazing did not take place."""
+def find_first_month_and_year(num_months, end_month, end_year):
+    """Find the month and year that is num_months prior to end_month, end_year.
+    Num_months includes the end_month and the first_month."""
+    
+    excess = num_months - end_month
+    full_years_prior = excess / 12
+    months_in_partial_years_prior = excess % 12
+    if months_in_partial_years_prior > 0:
+        first_year = end_year - full_years_prior - 1
+    else:
+        first_year = end_year - full_years_prior
+    first_month = 13 - months_in_partial_years_prior
+    return first_month, first_year
+    
+def fill_schedule(graz_schedule, first_year, first_month, end_year, end_month):
+    """Fill in a grazing schedule, from first_year, first_month up to and
+    including end_year, end_month, with months where grazing did not take place."""
     
     filled_schedule = graz_schedule
     for year in xrange(first_year, end_year + 1):
+        if year == first_year:
+            start_month = first_month
+        else:
+            start_month = 1
         if year == end_year:
             last_month = end_month
         else:
             last_month = 12
-        for month in xrange(1, last_month + 1):
+        for month in xrange(start_month, last_month + 1):
             current_year = graz_schedule.loc[(graz_schedule['relative_year'] ==
-                year), ]
+                                              year), ]
             current_month = current_year.loc[(current_year['month'] == month), ]
             if current_month.shape[0] == 0:
                 # no entry in schedule for this year/month combination:
@@ -418,12 +441,12 @@ def fill_schedule(graz_schedule, first_year, end_year, end_month):
                 filled_schedule = filled_schedule.append(df)
     return filled_schedule
 
-def find_target_month(add_event, schedule, empirical_date, n_years):
+def find_target_month(add_event, schedule, empirical_date, n_months):
     """Find the target month to add or remove grazing events from the schedule
     used by CENTURY.  This month should be immediately prior to the
     empirical_date and should include grazing (if add_event == 0) or should not
     include grazing (if add_event == 1)."""
-    
+                                    
     target_dict = {}
     
     # find the block we want to modify
@@ -440,23 +463,27 @@ def find_target_month(add_event, schedule, empirical_date, n_years):
     relative_empirical_year = int(math.floor(empirical_date) - start_year + 1)
     empirical_month = int(round((empirical_date - float(math.floor(
                             empirical_date))) * 12))
-    
+    first_rel_month, first_rel_year = find_first_month_and_year(
+                                               n_months, empirical_month,
+                                               relative_empirical_year)
     # find months where grazing took place prior to empirical date
     graz_schedule = read_graz_level(schedule)
-    block = graz_schedule.loc[(graz_schedule["block_end_year"] == last_year), 
-                              ['relative_year', 'month', 'grazing_level']]
+    block = graz_schedule.loc[(graz_schedule["block_end_year"] == 
+                              last_year), ['relative_year', 'month',
+                              'grazing_level']]
     empirical_year = block.loc[(block['relative_year'] ==
-                               relative_empirical_year), ]
-    empirical_year = empirical_year.loc[(empirical_year['month'] <=
-                                        empirical_month), ]
-    prev_year = block.loc[(block['relative_year'] < relative_empirical_year), ]
-    prev_year = prev_year.loc[(prev_year['relative_year'] >=
-                              (relative_empirical_year - n_years)), ]
-    history = prev_year.append(empirical_year)
+                               relative_empirical_year) & 
+                               (block['month'] <= empirical_month), ]
+    intervening_years = block.loc[(block['relative_year'] <
+                                  relative_empirical_year) & 
+                                  (block['relative_year'] > first_rel_year), ]
+    first_year = block.loc[(block['relative_year'] == first_rel_year) & 
+                                  (block['month'] >= first_rel_month), ]
+    history =  pandas.concat([first_year, intervening_years, empirical_year])
     
     # fill the grazing history with months where no grazing event was scheduled
-    filled_history = fill_schedule(history, relative_empirical_year - n_years,
-                                   relative_empirical_year, empirical_month)
+    filled_history = fill_schedule(history, first_rel_year, first_rel_month,
+                                     relative_empirical_year, empirical_month)
     # find candidate months for adding or removing grazing events
     if add_event:
         candidates = filled_history.loc[(filled_history['grazing_level'] ==

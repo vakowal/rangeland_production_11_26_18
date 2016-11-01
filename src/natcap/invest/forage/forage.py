@@ -73,8 +73,8 @@ def execute(args):
 
         returns nothing."""
 
-    for opt_arg in ['restart_yearly', 'diet_verbose', 'grz_months',
-                    'density_series']:
+    for opt_arg in ['restart_yearly', 'restart_monthly', 'diet_verbose',
+                    'grz_months', 'density_series']:
         try:
             val = args[opt_arg]
         except KeyError:
@@ -109,6 +109,9 @@ def execute(args):
             herbivore_list.append(herd)
     grass_list = (pandas.read_csv(args[u'grass_csv'])).to_dict(
                                                               orient='records')
+    for grass in grass_list:
+        if not isinstance(grass['label'], str):
+            grass['label'] = str(grass['label'])
     forage.check_initial_biomass(grass_list)
     results_dict = {'step': [], 'year': [], 'month': []}
     for h_class in herbivore_list:
@@ -433,7 +436,7 @@ def execute(args):
                     schedule = os.path.join(args[u'century_dir'],
                                             (grass['label'] + '.sch'))
                     target_dict = cent.find_target_month(add_event, schedule,
-                                                         date, 1)
+                                                         date, 12)
                     new_code = cent.add_new_graz_level(grass, consumed_dict,
                                                        graz_file,
                                                        args[u'template_level'],
