@@ -391,6 +391,9 @@ def check_schedule(schedule, n_months, empirical_date):
     relative_empirical_year = int(math.floor(empirical_date) - start_year + 1)        
     empirical_month = int(round((empirical_date - float(math.floor(
                                  empirical_date))) * 12))
+    if empirical_month == 0:
+        empirical_month = 12
+        relative_empirical_year = relative_empirical_year - 1
     first_rel_month, first_rel_year = find_first_month_and_year(
                                                n_months, empirical_month,
                                                relative_empirical_year)        
@@ -410,9 +413,10 @@ def find_first_month_and_year(num_months, end_month, end_year):
     months_in_partial_years_prior = excess % 12
     if months_in_partial_years_prior > 0:
         first_year = end_year - full_years_prior - 1
+        first_month = 13 - months_in_partial_years_prior
     else:
         first_year = end_year - full_years_prior
-    first_month = 13 - months_in_partial_years_prior
+        first_month = 1
     return first_month, first_year
     
 def fill_schedule(graz_schedule, first_year, first_month, end_year, end_month):
@@ -463,6 +467,9 @@ def find_target_month(add_event, schedule, empirical_date, n_months):
     relative_empirical_year = int(math.floor(empirical_date) - start_year + 1)
     empirical_month = int(round((empirical_date - float(math.floor(
                             empirical_date))) * 12))
+    if empirical_month == 0:
+        empirical_month = 12
+        relative_empirical_year = relative_empirical_year - 1
     first_rel_month, first_rel_year = find_first_month_and_year(
                                                n_months, empirical_month,
                                                relative_empirical_year)
