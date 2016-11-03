@@ -357,6 +357,9 @@ class HerbivoreClass:
         """Calculate distance walked per day by livestock, following Freer et
         al. 2012 equation 44a."""
 
+        self.D = 4  # constant, somewhat arbtirary, value
+        return      # because I believe this was having a huge undue effect
+                    # on simulation results
         if stocking_density == 0:
             return
         Bgreen = 0.
