@@ -330,7 +330,7 @@ def execute(args):
                                                                 herbivore_list)
                     total_SD = forage.calc_total_stocking_density(
                                                                 herbivore_list)
-                herb_class.calc_distance_walked(total_SD, site.S,
+                herb_class.calc_distance_walked(site.S, total_SD,
                                                 available_forage)
                 max_intake = herb_class.calc_max_intake()
 
@@ -404,9 +404,6 @@ def execute(args):
                     if not args['restart_monthly']:
                         herb_class.update(delta_weight=delta_W_step,
                                         delta_time=forage.find_days_per_step())
-                    else:
-                        herb_class.update(delta_weight=delta_W_step,
-                                      delta_time=forage.find_days_per_step())
                 except KeyError:
                     herb_class.update(delta_weight=delta_W_step,
                                       delta_time=forage.find_days_per_step())
@@ -437,6 +434,9 @@ def execute(args):
                                             (grass['label'] + '.sch'))
                     target_dict = cent.find_target_month(add_event, schedule,
                                                          date, 12)
+                    if target_dict == 0:
+                        raise Exception, """Error: grazing event already
+                                            scheduled in file"""
                     new_code = cent.add_new_graz_level(grass, consumed_dict,
                                                        graz_file,
                                                        args[u'template_level'],
