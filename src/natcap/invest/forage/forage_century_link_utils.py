@@ -627,8 +627,8 @@ def add_new_graz_level(grass, consumed, graz_file, template_level, outdir,
                             line = old_file.next()
                             template.append(line)
                             new_file.write(line)
-                        #line = old_file.next()
-                        #new_file.write(line)                        
+                        line = old_file.next()
+                        new_file.write(line)                        
                 newflgrem = '%.5f' % consumed[flgrem_key] + "           'FLGREM'"
                 newfdgrem = '%.5f' % consumed[fdgrem_key] + "           'FDGREM'" 
                 new_code = ''.join(random.choice(string.ascii_uppercase)
