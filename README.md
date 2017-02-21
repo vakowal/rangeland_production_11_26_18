@@ -11,8 +11,9 @@ A folder of sample inputs is provided in the repository as a zip file ("rangelan
 
 An example script is also provided to allow users to launch the rangeland production model using these sample inputs ("run_forage_example.py").  To run the model with sample inputs, clone the entire repository and unzip the sample inputs.  Open a command window, navigate to the folder where you have placed the rangeland production repository, and type:
 
-* "Python run_forage_example.py <sample_input_dir> <century_dir> <out_dir>",
-replacing the bracketed inputs with the input filepaths described above.
+    $ Python run_forage_example.py <sample_input_dir> <century_dir> <out_dir>
+
+Replace the bracketed inputs with the input filepaths described above.
 
 
 ### Getting Century ###
