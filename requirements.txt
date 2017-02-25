@@ -1,0 +1,16 @@
+# requirements.txt
+# --------------------
+# This file records the packages and requirements needed in order for
+# the rangeland production model to work as expected.
+
+datetime
+math
+operator
+pandas>=0.17.0
+re
+random
+shutil
+string
+subprocess
+tempfile
+time
