@@ -322,7 +322,7 @@ def read_CENTURY_outputs(cent_file, first_year, last_year):
     the specified range (between 'first_year' and 'last_year')."""
     
     cent_df = pandas.io.parsers.read_fwf(cent_file, skiprows = [1])
-    df_subset = cent_df[(cent_df.time >= first_year) & (cent_df.time < last_year + 1)]
+    df_subset = cent_df[(cent_df.time >= first_year) & (cent_df.time <= last_year + 1)]
     biomass = df_subset[['time', 'aglivc', 'stdedc', 'aglive(1)', 'stdede(1)']]
     aglivc = biomass.aglivc * 2.5  # live biomass, g per square m
     biomass.aglivc = aglivc
