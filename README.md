@@ -31,7 +31,7 @@ After the model completes successfully, the following outputs can be located in 
     * Month: month of the year, for that step
     * <herbivore>_kg: weight of a representative individual herbivore at the beginning of that time step, where <herbivore> is replaced by the label given in the herbivore_csv input by the user (kg)
     * <herbivore>_gain_kg: change in live weight of the herbivore during that time step (kg)
-<herbivore>_intake_forage_per_indiv_kg: kg of forage eaten by an individual herbivore during that time step
+    * <herbivore>_intake_forage_per_indiv_kg: kg of forage eaten by an individual herbivore during that time step
     * total_offtake: total biomass removed by herbivores during that time step, accounting for herbivore density (kg/ha)
     * <grass>_green_kgha: live biomass of the grass type <grass> prior to diet selection for that step, where <grass> is replaced by the label given for the grass type in the grass_csv input by the user (kg/ha)
     * <grass>_dead_kgha: standing dead biomass of the grass type <grass> prior to diet selection for that step
