@@ -450,17 +450,24 @@ class FeedType:
                                                     self.digestibility,
                                                     self.crude_protein)
 
-    def calc_digestibility_from_protein(self):
+    def calc_digestibility_from_protein(self, flag=None):
         """Use equations published in Illius et al. 1995 to calculate dry matter
         digestibility from crude protein concentration.  Note that these
         equations were developed for African perennial grasses."""
-
-        if self.green_or_dead == 'green':
+        
+        if flag is None:  # use regression from Illius et al. 1995
+            if self.green_or_dead == 'green':
+                self.digestibility = (
+                    ((self.crude_protein * 100 / 6.25) + 1.07) / 0.053) / 100
+            else:
+                self.digestibility = (
+                    ((self.crude_protein * 100 / 6.25) + 0.77) / 0.034) / 100
+        elif flag == 'CPER':
             self.digestibility = (
-                ((self.crude_protein * 100 / 6.25) + 1.07) / 0.053) / 100
+                    ((self.crude_protein * 100) * 1.5349) + 41.47) / 100
         else:
-            self.digestibility = (
-                ((self.crude_protein * 100 / 6.25) + 0.77) / 0.034) / 100
+            raise Exception("Error: unknown flag value {}".format(flag))
+        
 
 class Diet:
 
