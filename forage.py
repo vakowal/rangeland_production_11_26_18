@@ -344,8 +344,8 @@ def execute(args):
                                                 herb_class.f_w, herb_class.q_w,
                                                 supp)
                 diet_interm = forage.calc_diet_intermediates(
-                                diet, herb_class, site,
-                                args[u'prop_legume'], args[u'DOY'], supp)
+                                diet, herb_class, args[u'prop_legume'],
+                                args[u'DOY'], site, supp)
                 if herb_class.type != 'hindgut_fermenter':
                     reduced_max_intake = forage.check_max_intake(diet,
                                                                  diet_interm,
@@ -381,8 +381,8 @@ def execute(args):
                 diet = diet_dict[herb_class.label]
                 # if herb_class.type != 'hindgut_fermenter':
                 diet_interm = forage.calc_diet_intermediates(
-                                      diet, herb_class, site,
-                                      args[u'prop_legume'], args[u'DOY'], supp)
+                                      diet, herb_class, args[u'prop_legume'],
+                                      args[u'DOY'], site, supp)
                 if herb_class.sex == 'lac_female':
                     milk_production = forage.check_milk_production(
                                                          herb_class.FParam,

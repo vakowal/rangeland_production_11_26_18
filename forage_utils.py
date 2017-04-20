@@ -814,8 +814,8 @@ def calc_forage_classes(Bgreen, Bdead, DMDgreen, DMDdead):
         forage[d].rel_availability = forage[d].biomass / sum_biomass
     return forage
 
-def calc_diet_intermediates(diet, herb_class, site, prop_legume,
-                            DOY, supp=None):
+def calc_diet_intermediates(diet, herb_class, prop_legume,
+                            DOY, site=None, supp=None):
     """This mess is necessary to calculate intermediate values that are used
     to check whether there is sufficient protein in the diet (if not, max intake
     is reduced: done with check_max_intake), to check if milk production must be
@@ -830,6 +830,8 @@ def calc_diet_intermediates(diet, herb_class, site, prop_legume,
     if supp is None:
         supp = Supplement(FreerParam.FreerParamCattle('indicus'),
                           0, 0, 0, 0, 0, 0)
+    if site is None:
+        site = SiteInfo(1, 0)
     diet_interm = DietIntermediates()
     if diet.If == 0. and diet.Is == 0.:
         return diet_interm
