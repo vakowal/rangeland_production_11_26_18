@@ -163,7 +163,8 @@ def execute(args):
                                  supp_info['rumen_degradability'])
         if supp.DMO > 0.:
             supp_available = 1
-
+    else:
+        supp = None
     # make a copy of the original graz params and schedule file
     shutil.copyfile(graz_file, os.path.join(args[u'century_dir'],
                     'graz_orig.100'))
@@ -337,13 +338,14 @@ def execute(args):
                 ZF = herb_class.calc_ZF()
                 HR = forage.calc_relative_height(available_forage)
                 diet = forage.diet_selection_t2(ZF, HR, args[u'prop_legume'],
-                                                supp_available, supp,
-                                                max_intake, herb_class.FParam,
+                                                supp_available, max_intake,
+                                                herb_class.FParam,
                                                 available_forage,
-                                                herb_class.f_w, herb_class.q_w)
+                                                herb_class.f_w, herb_class.q_w,
+                                                supp)
                 diet_interm = forage.calc_diet_intermediates(
-                                diet, supp, herb_class, site,
-                                args[u'prop_legume'], args[u'DOY'])
+                                diet, herb_class, site,
+                                args[u'prop_legume'], args[u'DOY'], supp)
                 if herb_class.type != 'hindgut_fermenter':
                     reduced_max_intake = forage.check_max_intake(diet,
                                                                  diet_interm,
@@ -352,10 +354,10 @@ def execute(args):
                     if reduced_max_intake < max_intake:
                         diet = forage.diet_selection_t2(ZF, HR,
                                                         args[u'prop_legume'],
-                                                        supp_available, supp,
+                                                        supp_available,
                                                         reduced_max_intake,
                                                         herb_class.FParam,
-                                                        available_forage)
+                                                        available_forage, supp)
                 diet_dict[herb_class.label] = diet
             forage.reduce_demand(diet_dict, stocking_density_dict,
                                  available_forage)
@@ -379,8 +381,8 @@ def execute(args):
                 diet = diet_dict[herb_class.label]
                 # if herb_class.type != 'hindgut_fermenter':
                 diet_interm = forage.calc_diet_intermediates(
-                                        diet, supp, herb_class, site,
-                                        args[u'prop_legume'], args[u'DOY'])
+                                      diet, herb_class, site,
+                                      args[u'prop_legume'], args[u'DOY'], supp)
                 if herb_class.sex == 'lac_female':
                     milk_production = forage.check_milk_production(
                                                          herb_class.FParam,

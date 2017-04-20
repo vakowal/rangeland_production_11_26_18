@@ -515,8 +515,9 @@ class DietIntermediates:
         self.Pg1 = 0.
         self.MEItotal = 0.
 
-def diet_selection_t2(ZF, HR, prop_legume, supp_available, supp, Imax, FParam,
-                      available_forage, f_w=0, q_w=0, force_supp=None):
+def diet_selection_t2(ZF, HR, prop_legume, supp_available, Imax, FParam,
+                      available_forage, f_w=0, q_w=0, force_supp=None,
+                      supp=None):
     """Perform diet selection for an individual herbivore, tier 2.  This
     function calculates relative availability, F (including factors like
     pasture height and animal mouth size) and relative ingestibility, RQ 
@@ -813,8 +814,8 @@ def calc_forage_classes(Bgreen, Bdead, DMDgreen, DMDdead):
         forage[d].rel_availability = forage[d].biomass / sum_biomass
     return forage
 
-def calc_diet_intermediates(diet, supp, herb_class, site, prop_legume,
-                            DOY):
+def calc_diet_intermediates(diet, herb_class, site, prop_legume,
+                            DOY, supp=None):
     """This mess is necessary to calculate intermediate values that are used
     to check whether there is sufficient protein in the diet (if not, max intake
     is reduced: done with check_max_intake), to check if milk production must be
@@ -826,6 +827,9 @@ def calc_diet_intermediates(diet, supp, herb_class, site, prop_legume,
     the relevant values later used as input to check_max_intake,
     check_milk_production, calc_milk_yield and calc_delta_weight."""
 
+    if supp is None:
+        supp = Supplement(FreerParam.FreerParamCattle('indicus'),
+                          0, 0, 0, 0, 0, 0)
     diet_interm = DietIntermediates()
     if diet.If == 0. and diet.Is == 0.:
         return diet_interm
