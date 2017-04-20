@@ -316,7 +316,7 @@ def execute(args):
                 # standing (kg per ha)
                 threshold_biomass = total_biomass * float(
                                     args[u'mgmt_threshold'])
-            diet_dict = {}        
+            diet_dict = {}
             for herb_class in herbivore_list:
                 if args['grz_months'] is not None and step not in \
                                                             args['grz_months']:

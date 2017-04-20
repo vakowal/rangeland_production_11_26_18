@@ -594,8 +594,8 @@ def diet_selection_t2(ZF, HR, prop_legume, supp_available, Imax, FParam,
         diet_selected.If += I[f_index]
 
         # stash the amount consumed of each forage type
-        f_label = available_forage[f_index].label + ';' +\
-                  available_forage[f_index].green_or_dead
+        f_label = '{};{}'.format(available_forage[f_index].label,
+                                 available_forage[f_index].green_or_dead)
         diet_selected.intake[f_label] = I[f_index]
     diet_selected.DMDf = diet_selected.DMDf / diet_selected.If
     if supp_selected:
@@ -636,7 +636,8 @@ def reduce_demand(diet_dict, stocking_density_dict, available_forage):
     according to its proportion of total demand for that forage type."""
     
     for feed_type in available_forage:
-        label_string = ';'.join([feed_type.label, feed_type.green_or_dead])
+        label_string = '{};{}'.format(feed_type.label,
+                                      feed_type.green_or_dead)
         available = feed_type.biomass
         demand = 0.
         indiv_demand_dict = {}
@@ -660,7 +661,8 @@ def reduce_demand(diet_dict, stocking_density_dict, available_forage):
         diet_dict[hclass_label].DMDf = 0.
         diet_dict[hclass_label].CPIf = 0.
         for feed_type in available_forage:
-            label_string = ';'.join([feed_type.label, feed_type.green_or_dead])
+            label_string = '{};{}'.format(feed_type.label,
+                                          feed_type.green_or_dead)
             intake_daily = diet_dict[hclass_label].intake[label_string]
             diet_dict[hclass_label].If += intake_daily
             diet_dict[hclass_label].DMDf += (intake_daily * 
