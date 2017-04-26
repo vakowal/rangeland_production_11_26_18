@@ -465,6 +465,9 @@ class FeedType:
         elif flag == 'CPER':
             self.digestibility = (
                     ((self.crude_protein * 100) * 1.5349) + 41.47) / 100
+        elif flag == 'Konza':
+            self.digestibility = (
+                    ((self.crude_protein * 100) * 2.2879) + 31.52) / 100
         else:
             raise Exception("Error: unknown flag value {}".format(flag))
         
