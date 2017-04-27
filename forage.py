@@ -70,11 +70,13 @@ def execute(args):
         args['restart_yearly'] - re-initialize the animal herd every year?
             hack-y option for CGIAR Peru integration with SWAT.
         args['diet_verbose'] - save details of diet selection?
-
+        args['digestibility_flag'] - flag to use a particular regression
+            equation to calculate digestibility from crude protein
+        
         returns nothing."""
 
     for opt_arg in ['restart_yearly', 'restart_monthly', 'diet_verbose',
-                    'grz_months', 'density_series']:
+                    'grz_months', 'density_series', 'digestibility_flag']:
         try:
             val = args[opt_arg]
         except KeyError:
@@ -308,7 +310,8 @@ def execute(args):
 
             if not args[u'user_define_digestibility']:
                 for feed_type in available_forage:
-                    feed_type.calc_digestibility_from_protein()
+                    feed_type.calc_digestibility_from_protein(
+                                                    args['digestibility_flag'])
 
             total_biomass = forage.calc_total_biomass(available_forage)
             if step == 0:
@@ -357,7 +360,10 @@ def execute(args):
                                                         supp_available,
                                                         reduced_max_intake,
                                                         herb_class.FParam,
-                                                        available_forage, supp)
+                                                        available_forage,
+                                                        herb_class.f_w,
+                                                        herb_class.q_w,
+                                                        supp)
                 diet_dict[herb_class.label] = diet
             forage.reduce_demand(diet_dict, stocking_density_dict,
                                  available_forage)

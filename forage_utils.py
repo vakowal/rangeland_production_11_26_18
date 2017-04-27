@@ -524,7 +524,7 @@ def diet_selection_t2(ZF, HR, prop_legume, supp_available, Imax, FParam,
     """Perform diet selection for an individual herbivore, tier 2.  This
     function calculates relative availability, F (including factors like
     pasture height and animal mouth size) and relative ingestibility, RQ 
-    including factors like pasture digestibility and proportion legume in the
+    (including factors like pasture digestibility and proportion legume in the
     sward) to select a preferred mixture of forage types, including supplement
     if offered.  Available forage must be supplied to the function in an
     ordered list such that available_forage[0] is of highest digestibility.
