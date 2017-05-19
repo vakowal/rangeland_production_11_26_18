@@ -25,22 +25,21 @@ def run_sample_inputs(sample_input_dir, century_dir, outdir):
         'herbivore_csv': os.path.join(sample_input_dir,
                                       "herd_avg_uncalibrated.csv"),
         'restart_monthly': 1,
-        'template_level': 'GL',
         'grass_csv': os.path.join(sample_input_dir, "0.csv"),
         'latitude': 0.13167,
         'outdir': outdir,
         }
-        
+
     forage.execute(forage_args)
-    
+
 if __name__ == "__main__":
     # path to sample input folder
     sample_input_dir = sys.argv[1]
-    
+
     # path to directory containing century executable and files
     century_dir = sys.argv[2]
-    
+
     # path to directory to store results (ok if it doesn't exist)
     outdir = sys.argv[3]
-       
+
     run_sample_inputs(sample_input_dir, century_dir, outdir)
