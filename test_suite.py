@@ -1,4 +1,5 @@
 """Rangeland Production test suite."""
+import csv
 import tempfile
 import shutil
 import unittest
@@ -57,3 +58,13 @@ class RangelandProductionTests(unittest.TestCase):
         }
 
         forage.execute(forage_args)
+        with open(
+                os.path.join(self.workspace_dir, 'summary_results.csv'),
+                'rb') as summary_results_file:
+            reader = csv.DictReader(summary_results_file)
+            reader.next()  # skip the first line
+            # this is the total offtake on the first year as seen in a
+            # regression result from running manually.
+            self.assertAlmostEqual(
+                float(reader.next()['total_offtake']), 288.15456236810326)
+
