@@ -15,11 +15,11 @@ class RangelandProductionTests(unittest.TestCase):
     """Regression tests for Rangeland Production scripts."""
 
     def setUp(self):
-        """Initialize SDRRegression tests."""
+        """Create a temporary workspace dir so we can delete at end."""
         self.workspace_dir = tempfile.mkdtemp()
 
     def tearDown(self):
-        """Clean up remaining files."""
+        """Clean up workspace by deleting it."""
         shutil.rmtree(self.workspace_dir)
 
     def test_base_regression(self):
@@ -62,9 +62,12 @@ class RangelandProductionTests(unittest.TestCase):
                 os.path.join(self.workspace_dir, 'summary_results.csv'),
                 'rb') as summary_results_file:
             reader = csv.DictReader(summary_results_file)
-            reader.next()  # skip the first line
+            for _ in xrange(13):   # skip to the first year
+                reader.next()
             # this is the total offtake on the first year as seen in a
             # regression result from running manually.
             self.assertAlmostEqual(
-                float(reader.next()['total_offtake']), 288.15456236810326)
+                float(reader.next()['total_offtake']), 327.1388958)
+            self.assertAlmostEqual(
+                float(reader.next()['cattle_gain_kg']), 5.01127884376492)
 
