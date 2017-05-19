@@ -62,12 +62,13 @@ class RangelandProductionTests(unittest.TestCase):
                 os.path.join(self.workspace_dir, 'summary_results.csv'),
                 'rb') as summary_results_file:
             reader = csv.DictReader(summary_results_file)
-            for _ in xrange(13):   # skip to the first year
+            for _ in xrange(12):   # skip to the first year
                 reader.next()
-            # this is the total offtake on the first year as seen in a
-            # regression result from running manually.
+            result = reader.next()
+            # this is the total offtake and cattle gain at the start of the
+            # second year as seen in a regression result from running
+            # manually. `python run_forage_example.py "C:\Users\rpsharp\Documents\bitbucket_repos\rangeland_production_sample_inputs" "C:\Users\rpsharp\Documents\bitbucket_repos\Century46_PC_Jan-2014" "C:\Users\rpsharp\Documents\century_outputs_2"`
             self.assertAlmostEqual(
-                float(reader.next()['total_offtake']), 327.1388958)
+                float(result['total_offtake']), 315.5265641)
             self.assertAlmostEqual(
-                float(reader.next()['cattle_gain_kg']), 5.01127884376492)
-
+                float(result['cattle_gain_kg']), 3.805385098)
