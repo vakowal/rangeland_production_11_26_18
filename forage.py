@@ -273,7 +273,7 @@ def execute(args):
                 outputs = cent.read_CENTURY_outputs(output_file,
                                                     year - 1,
                                                     year + 1)
-                outputs.drop_duplicates(inplace=True)
+                outputs = outputs[~outputs.index.duplicated(keep='first')]
                 target_month = cent.find_prev_month(year, month)
                 grass['prev_g_gm2'] = grass['green_gm2']
                 grass['prev_d_gm2'] = grass['dead_gm2']
