@@ -282,6 +282,10 @@ def execute(args):
                 except KeyError:
                     raise Exception("CENTURY outputs not as expected")
                 grass['dead_gm2'] = outputs.loc[target_month, 'stdedc']
+                if grass['green_gm2'] == 0:
+                    grass['green_gm2'] = 0.000001
+                if grass['dead_gm2'] == 0:
+                    grass['dead_gm2'] = 0.000001
                 if not args[u'user_define_protein']:
                     try:
                         N_mult = grass['N_multiplier']
