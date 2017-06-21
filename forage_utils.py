@@ -588,6 +588,7 @@ def diet_selection_t2(ZF, HR, prop_legume, supp_available, Imax, FParam,
     sum_Rw = sum(R_w)
     for f_index in range(len(available_forage)):
         R_w[f_index] = (R_w[f_index] / sum_Rw) * sum(R)
+    # Imax = 11.8 / sum(R_w)  # forcing intake of one Animal Unit
     for f_index in range(len(available_forage)):    
         I.append(Imax * R_w[f_index])  # eq 27
         diet_selected.DMDf += (I[f_index] *
