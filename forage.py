@@ -167,6 +167,9 @@ def execute(args):
             supp_available = 1
     else:
         supp = None
+    # assume fix file is in the input directory, copy it to Century directory
+    shutil.copyfile(os.path.join(args['input_dir'], args['fix_file']),
+                    os.path.join(args['century_dir'], args['fix_file']))
     # make a copy of the original graz params and schedule file
     shutil.copyfile(graz_file, os.path.join(args[u'century_dir'],
                     'graz_orig.100'))
