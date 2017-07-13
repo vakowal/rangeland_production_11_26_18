@@ -623,11 +623,26 @@ def add_new_graz_level(grass, consumed, graz_file, template_level, outdir,
                         new_file.write(line)
                         line = old_file.next()
                         new_file.write(line)
-                        while 'FECLIG' not in line:
-                            line = old_file.next()
+                        line = old_file.next()
+                        while 'GRZEFF' not in line:
                             template.append(line)
                             new_file.write(line)
-                        line = old_file.next()
+                            line = old_file.next()
+                        try:
+                            new_grzeff = grass['grzeff']
+                            template.append("{:7.5f}           'GRZEFF'\n".format(new_grzeff))
+                            new_file.write(line)
+                            line = old_file.next()
+                        except KeyError:
+                            new_grzeff = None
+                            template.append(line)
+                            new_file.write(line)
+                            line = old_file.next()
+                        while 'FECLIG' not in line:
+                            template.append(line)
+                            new_file.write(line)
+                            line = old_file.next()
+                        template.append(line)
                         new_file.write(line)                        
                 newflgrem = '%.5f' % consumed[flgrem_key] + "           'FLGREM'"
                 newfdgrem = '%.5f' % consumed[fdgrem_key] + "           'FDGREM'" 
