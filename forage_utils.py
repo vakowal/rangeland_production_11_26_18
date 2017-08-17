@@ -901,7 +901,8 @@ def calc_diet_intermediates(diet, herb_class, prop_legume,
                          herb_class.FParam.CL6)
     
     # eq 46, protein req for maintenance:
-    if herb_class.type in ['B_indicus', 'B_taurus', 'indicus_x_taurus']:
+    if herb_class.type in ['B_indicus', 'B_taurus', 'indicus_x_taurus',
+                           'hindgut_fermenter']:
         Pm = (herb_class.FParam.CM12 * math.log(herb_class.W) - 
               herb_class.FParam.CM13 + herb_class.FParam.CM10 * (diet.If +
               diet.Is) + herb_class.FParam.CM14 * herb_class.W ** 0.75)
