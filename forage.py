@@ -234,12 +234,12 @@ def execute(args):
     results_dict['step'].append(step)
     results_dict['year'].append(year)
     results_dict['month'].append(month)
+    results_dict['total_offtake'].append('NA')
     for herb_class in herbivore_list:
         results_dict[herb_class.label + '_kg'].append(herb_class.W)
         results_dict[herb_class.label + '_gain_kg'].append('NA')
         results_dict[herb_class.label +
                      '_intake_forage_per_indiv_kg'].append('NA')
-        results_dict['total_offtake'].append('NA')
     try:
         for step in xrange(args[u'num_months']):
             step_month = args[u'start_month'] + step
