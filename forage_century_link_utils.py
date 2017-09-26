@@ -614,6 +614,8 @@ def add_new_graz_level(grass, consumed, graz_file, template_level, outdir,
         with open(abs_path, 'wb') as new_file:
             with open(graz_file, 'rb') as old_file:
                 for line in old_file:
+                    if not line.endswith('\n'):
+                        line = '{}\n'.format(line)
                     new_file.write(line)
                     if '(orig)' in line or '(added)' in line:
                         existing_codes.append(line[:4].strip())
