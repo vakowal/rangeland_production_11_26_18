@@ -656,7 +656,10 @@ def reduce_demand(diet_dict, stocking_density_dict, available_forage):
                 sd = stocking_density_dict[hclass_label]
                 intake_step = available * (indiv_demand_dict[hclass_label] /
                                            demand)
-                intake_daily = convert_step_to_daily(intake_step) / sd
+                try:
+                    intake_daily = convert_step_to_daily(intake_step) / sd
+                except ZeroDivisionError:
+                    intake_daily = 0
                 diet_dict[hclass_label].intake[label_string] = intake_daily
 
     # recalculate all other quantities in diet
