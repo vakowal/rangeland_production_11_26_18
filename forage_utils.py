@@ -1051,10 +1051,11 @@ def check_initial_biomass(grass_list):
 
 def one_step(site, DOY, herb_class, available_forage, prop_legume,
              supp_available, supp, intake=None, force_supp=None):
-    """One step of the forage model, if available forage does not change."""
+    """One step of the forage model, with one herbivore type, if available
+    forage does not change."""
 
     row = []
-    herb_class.calc_distance_walked(herb_class.stocking_density, site.S,
+    herb_class.calc_distance_walked(site.S, herb_class.stocking_density,
                                     available_forage)
     max_intake = herb_class.calc_max_intake()
 
@@ -1069,22 +1070,22 @@ def one_step(site, DOY, herb_class, available_forage, prop_legume,
         diet_interm = calc_diet_intermediates(diet, supp, herb_class,
                                               site, prop_legume, DOY)
     else:        
-        diet = diet_selection_t2(ZF, HR, prop_legume, supp_available, supp,
+        diet = diet_selection_t2(ZF, HR, prop_legume, supp_available, 
                                  max_intake, herb_class.FParam,
-                                 available_forage, force_supp)
-        diet_interm = calc_diet_intermediates(diet, supp, herb_class,
-                                              site, prop_legume, DOY)
+                                 available_forage, supp=supp)
+        diet_interm = calc_diet_intermediates(diet, herb_class, prop_legume, 
+                                              DOY, site, supp)
         if herb_class.type != 'hindgut_fermenter':
             reduced_max_intake = check_max_intake(diet, diet_interm,
                                                   herb_class, max_intake)
             row.append(reduced_max_intake)
             if reduced_max_intake < max_intake:
-                diet = diet_selection_t2(ZF, HR, prop_legume, supp_available,
-                                         supp, reduced_max_intake,
-                                         herb_class.FParam, available_forage,
-                                         force_supp)
-                diet_interm = calc_diet_intermediates(diet, supp, herb_class,
-                                                      site, prop_legume, DOY)
+                diet = diet_selection_t2(ZF, HR, prop_legume, supp_available, 
+                                         reduced_max_intake, herb_class.FParam,
+                                         available_forage, supp=supp)
+                diet_interm = calc_diet_intermediates(diet, herb_class,
+                                                      prop_legume, DOY, site,
+                                                      supp=supp)
     delta_W = calc_delta_weight(diet_interm, herb_class)
     delta_W_step = convert_daily_to_step(delta_W)
     herb_class.update(delta_weight=delta_W_step,
