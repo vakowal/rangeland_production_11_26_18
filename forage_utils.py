@@ -1074,7 +1074,7 @@ def one_step(site, DOY, herb_class, available_forage, prop_legume,
                                  max_intake, herb_class.FParam,
                                  available_forage, supp=supp)
         diet_interm = calc_diet_intermediates(diet, herb_class, prop_legume, 
-                                              DOY, site, supp)
+                                              DOY, site, supp=supp)
         if herb_class.type != 'hindgut_fermenter':
             reduced_max_intake = check_max_intake(diet, diet_interm,
                                                   herb_class, max_intake)
