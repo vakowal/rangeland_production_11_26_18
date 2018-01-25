@@ -462,10 +462,10 @@ class FeedType:
             else:
                 self.digestibility = (
                     ((self.crude_protein * 100 / 6.25) + 0.77) / 0.034) / 100
-        elif flag == 'CPER':
+        elif flag == 'CPER':  # derived from data in Rodriguez Roath 1987
             self.digestibility = (
                     ((self.crude_protein * 100) * 1.5349) + 41.47) / 100
-        elif flag == 'Konza':
+        elif flag == 'Konza':  # derived from data in Hobbs et al. 1991
             self.digestibility = (
                     ((self.crude_protein * 100) * 2.2879) + 31.52) / 100
         else:
@@ -588,7 +588,7 @@ def diet_selection_t2(ZF, HR, prop_legume, supp_available, Imax, FParam,
     sum_Rw = sum(R_w)
     for f_index in range(len(available_forage)):
         R_w[f_index] = (R_w[f_index] / sum_Rw) * sum(R)
-    # Imax = 11.8 / sum(R_w)  # forcing intake of one Animal Unit
+    Imax = 11.8 / sum(R_w)  # forcing intake of one Animal Unit, Ucross
     for f_index in range(len(available_forage)):    
         I.append(Imax * R_w[f_index])  # eq 27
         diet_selected.DMDf += (I[f_index] *
