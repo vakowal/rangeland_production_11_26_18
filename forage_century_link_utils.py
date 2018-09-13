@@ -17,13 +17,15 @@ global _century_dir
 # disable setting with copy warning
 pandas.options.mode.chained_assignment = None
 
+
 def set_century_directory(century_dir):
     global _century_dir
     _century_dir = century_dir
 
+
 def launch_CENTURY_subprocess(bat_file):
     """Launch CENTURY subprocess and check that it completed successfully."""
-    
+
     p = Popen(["cmd.exe", "/c " + bat_file], cwd=_century_dir)
     stdout, stderr = p.communicate()
     p.wait()
@@ -46,14 +48,15 @@ def launch_CENTURY_subprocess(bat_file):
                 time.sleep(1.0)
                 tries = tries + 1
     raise Exception(error)
-            
+
+
 def read_graz_params(graz_file):
     """Tabulate the values for flgrem (fraction live above-ground biomass
     removed) and fdgrem (fraction standing dead above-ground biomass removed)
     for different grazing level codes.  The grazing parameter definition file
     supplied as argument here should be the same definition file used for the
     CENTURY run."""
-    
+
     glevel_list = []
     flgrem_list = []
     fdgrem_list = []
@@ -81,6 +84,7 @@ def read_graz_params(graz_file):
     gparams_indexed = gparams_df.set_index('glevel')
     return gparams_indexed
 
+
 def modify_intensity(diff, graz_file, graz_level, outdir, suffix):
     """Modify past management in terms of intensity.  Modifies the grazing
     parameters file used by CENTURY for the specified grazing level, stashing a
@@ -92,7 +96,7 @@ def modify_intensity(diff, graz_file, graz_level, outdir, suffix):
     if diff > 0:
         # simulated biomass greater than empirical
         increase_intensity = 1
-        
+
     increment = 0.1  # TODO this should be dynamic
     fh, abs_path = mkstemp()
     os.close(fh)
@@ -138,11 +142,12 @@ def modify_intensity(diff, graz_file, graz_level, outdir, suffix):
         os.remove(abs_path)
         return 1
 
+
 def read_block_schedule(schedule):
     """Read the CENTURY schedule file.  This function copies the block structure
     of the schedule file supplied to CENTURY, without regard for any scheduled
     events."""
-    
+
     bl_st_year = []
     bl_end_year = []
     bl_rpt_year = []
@@ -164,17 +169,18 @@ def read_block_schedule(schedule):
                 bl_end_year.append(year_l)
                 bl_rpt_year.append(rpt_years)
                 start_year = year_l + 1  # for next block
-    composite_dict = {'block_start_year': bl_st_year, 
+    composite_dict = {'block_start_year': bl_st_year,
                       'block_end_year': bl_end_year, 'block_rpt_year': bl_rpt_year}
     schedule_df = pandas.DataFrame(composite_dict, columns = ['block_start_year',
                 'block_end_year', 'block_rpt_year'])
     return schedule_df
 
+
 def read_events(schedule):
     """Get scheduled events from the CENTURY schedule file.  This function
     copies the schedule file supplied to CENTURY for months where any event was
     scheduled, but does not record grazing levels."""
-    
+
     bl_st_year = []
     bl_end_year = []
     bl_rpt_year = []
@@ -204,7 +210,7 @@ def read_events(schedule):
                         relative_year = int(line[:5].strip())
                         month = int(line[6:10].strip())
                         event = line[10:15].strip()
-                        
+
                         bl_st_year.append(start_year)
                         bl_end_year.append(year_l)
                         bl_rpt_year.append(rpt_years)
@@ -222,6 +228,7 @@ def read_events(schedule):
                 'block_rpt_year'])
     return glevel_df
 
+
 def read_graz_level(schedule):
     """Get grazing level codes from the CENTURY schedule file.  This function
     copies the schedule file supplied to CENTURY only for months where grazing
@@ -229,7 +236,7 @@ def read_graz_level(schedule):
     'process_graz_level' function to generate a monthly schedule of grazing
     levels.  TODO: this function should probably be replaced by 'read_events'
     with an argument to pay attention only to grazing events."""
-    
+
     bl_st_year = []
     bl_end_year = []
     bl_rpt_year = []
@@ -260,7 +267,7 @@ def read_graz_level(schedule):
                         month = int(line[6:10].strip())
                         line = sch.next()
                         level = line[:4].strip()
-                        
+
                         bl_st_year.append(start_year)
                         bl_end_year.append(year_l)
                         bl_rpt_year.append(rpt_years)
@@ -278,6 +285,7 @@ def read_graz_level(schedule):
                 'block_rpt_year'])
     return glevel_df
 
+
 def process_graz_level(glevel_df, gparam_df):
     """Process the schedule of grazing events produced with the 'read_graz_level'
     function so that instead of being arranged by repeating blocks, the schedule
@@ -285,7 +293,7 @@ def process_graz_level(glevel_df, gparam_df):
     levels identified with 'read_graz_level' by finding the correct values for
     flgrem (fraction live biomass removed by grazing) and fdgrem (fraction
     standing dead biomass removed by grazing) for each grazing level."""
-    
+
     year_list = []
     flgrem_list = []
     fdgrem_list = []
@@ -316,11 +324,12 @@ def process_graz_level(glevel_df, gparam_df):
     repeated_df = pandas.DataFrame(dict)
     repeated_indexed = repeated_df.set_index('year')
     return repeated_indexed
-    
+
+
 def read_CENTURY_outputs(cent_file, first_year, last_year):
     """Read biomass outputs from CENTURY for each month of CENTURY output within
     the specified range (between 'first_year' and 'last_year')."""
-    
+
     cent_df = pandas.io.parsers.read_fwf(cent_file, skiprows = [1])
     df_subset = cent_df[(cent_df.time >= first_year) & (cent_df.time <= last_year + 1)]
     biomass = df_subset[['time', 'aglivc', 'stdedc', 'aglive(1)', 'stdede(1)']]
@@ -336,36 +345,39 @@ def read_CENTURY_outputs(cent_file, first_year, last_year):
     biomass_indexed = biomass.set_index('time')
     return biomass_indexed
 
+
 def convert_units(g_per_m2, cell_size_ha):
     """Convert a quantity in g per square m to kg per grid cell."""
-    
+
     kg_per_m2 = float(g_per_m2) / 1000.
     kg_per_ha = kg_per_m2 * 10000.
     kg = kg_per_ha * cell_size_ha
     return kg
-    
+
+
 def write_century_bat(century_dir, century_bat, schedule, output, fix_file,
                       outvars, extend=None):
     """Write the batch file to run CENTURY"""
-    
+
     if schedule[-4:] == '.sch':
         schedule = schedule[:-4]
     if output[-4:] == '.lis':
         output = output[:-4]
-    
+
     with open(os.path.join(century_dir, century_bat), 'wb') as file:
         file.write('copy ' + fix_file + ' fix.100\n')
-        
+
         if extend is not None:
             file.write('century_46 -s ' + schedule + ' -n ' + output + ' -e ' +
                 extend + ' > ' + output + '_log.txt\n')
         else:
-            file.write('century_46 -s ' + schedule + ' -n ' + output + ' > ' + 
+            file.write('century_46 -s ' + schedule + ' -n ' + output + ' > ' +
                 output + '_log.txt\n')
         file.write('list100_46 ' + output + ' ' + output + ' ' + outvars +
             '\n\n')
-        
+
         file.write('erase fix.100\n')
+
 
 def check_schedule(schedule, n_months, empirical_date):
     """Check that the schedule file used to produce CENTURY output can be
@@ -374,7 +386,7 @@ def check_schedule(schedule, n_months, empirical_date):
     empirical date.  The block must also be composed of non-repeating
     sequences because any modification made should only apply to one year, not
     to every 3rd year, every 4th year, etc for example."""
-    
+
     schedule_df = read_block_schedule(schedule)
     for i in range(0, schedule_df.shape[0]):
         start_year = schedule_df.loc[i, 'block_start_year']
@@ -387,8 +399,8 @@ def check_schedule(schedule, n_months, empirical_date):
                 er = "Error: CENTURY schedule file must contain non-repeating sequence for years to be manipulated"
                 raise Exception(er)
             break
-    
-    relative_empirical_year = int(math.floor(empirical_date) - start_year + 1)        
+
+    relative_empirical_year = int(math.floor(empirical_date) - start_year + 1)
     empirical_month = int(round((empirical_date - float(math.floor(
                                  empirical_date))) * 12))
     if empirical_month == 0:
@@ -396,7 +408,7 @@ def check_schedule(schedule, n_months, empirical_date):
         relative_empirical_year = relative_empirical_year - 1
     first_rel_month, first_rel_year = find_first_month_and_year(
                                                n_months, empirical_month,
-                                               relative_empirical_year)        
+                                               relative_empirical_year)
     first_abs_year = first_rel_year + start_year - 1
     if first_abs_year >= start_year:
         return
@@ -404,10 +416,11 @@ def check_schedule(schedule, n_months, empirical_date):
         er = "Error: CENTURY schedule file does not contain a single block that can be modified"
         raise Exception(er)
 
+
 def find_first_month_and_year(num_months, end_month, end_year):
     """Find the month and year that is num_months prior to end_month, end_year.
     Num_months includes the end_month and the first_month."""
-    
+
     excess = num_months - end_month
     full_years_prior = excess / 12
     months_in_partial_years_prior = excess % 12
@@ -418,11 +431,12 @@ def find_first_month_and_year(num_months, end_month, end_year):
         first_year = end_year - full_years_prior
         first_month = 1
     return first_month, first_year
-    
+
+
 def fill_schedule(graz_schedule, first_year, first_month, end_year, end_month):
     """Fill in a grazing schedule, from first_year, first_month up to and
     including end_year, end_month, with months where grazing did not take place."""
-    
+
     filled_schedule = graz_schedule
     for year in xrange(first_year, end_year + 1):
         if year == first_year:
@@ -445,14 +459,15 @@ def fill_schedule(graz_schedule, first_year, first_month, end_year, end_month):
                 filled_schedule = filled_schedule.append(df)
     return filled_schedule
 
+
 def find_target_month(add_event, schedule, empirical_date, n_months):
     """Find the target month to add or remove grazing events from the schedule
     used by CENTURY.  This month should be immediately prior to the
     empirical_date and should include grazing (if add_event == 0) or should not
     include grazing (if add_event == 1)."""
-                                    
+
     target_dict = {}
-    
+
     # find the block we want to modify
     schedule_df = read_block_schedule(schedule)
     for i in range(0, schedule_df.shape[0]):
@@ -460,7 +475,7 @@ def find_target_month(add_event, schedule, empirical_date, n_months):
         last_year = schedule_df.loc[i, 'block_end_year']
         if empirical_date > start_year and empirical_date <= last_year + 1:
             break
-    
+
     target_dict['last_year'] = last_year
     # find year and month of empirical measurement date relative to the block:
     # this is how they are specified in the schedule file
@@ -475,19 +490,19 @@ def find_target_month(add_event, schedule, empirical_date, n_months):
                                                relative_empirical_year)
     # find months where grazing took place prior to empirical date
     graz_schedule = read_graz_level(schedule)
-    block = graz_schedule.loc[(graz_schedule["block_end_year"] == 
+    block = graz_schedule.loc[(graz_schedule["block_end_year"] ==
                               last_year), ['relative_year', 'month',
                               'grazing_level']]
     empirical_year = block.loc[(block['relative_year'] ==
-                               relative_empirical_year) & 
+                               relative_empirical_year) &
                                (block['month'] <= empirical_month), ]
     intervening_years = block.loc[(block['relative_year'] <
-                                  relative_empirical_year) & 
+                                  relative_empirical_year) &
                                   (block['relative_year'] > first_rel_year), ]
-    first_year = block.loc[(block['relative_year'] == first_rel_year) & 
+    first_year = block.loc[(block['relative_year'] == first_rel_year) &
                                   (block['month'] >= first_rel_month), ]
     history =  pandas.concat([first_year, intervening_years, empirical_year])
-    
+
     # fill the grazing history with months where no grazing event was scheduled
     filled_history = fill_schedule(history, first_rel_year, first_rel_month,
                                      relative_empirical_year, empirical_month)
@@ -497,22 +512,22 @@ def find_target_month(add_event, schedule, empirical_date, n_months):
                                         'none'), ]
     else:
         candidates = filled_history.loc[(filled_history['grazing_level'] !=
-                                        'none'), ] 
+                                        'none'), ]
     if candidates.shape[0] == 0:
         # no opportunities exist to modify grazing schedule as needed
         return 0
-    
+
     # find target month and year where grazing event should be added or removed
     else:
         candidates = candidates.sort(['relative_year', 'month'],
                                      ascending=[0, 0])
         target_year = candidates.iloc[0]['relative_year']
         target_month = candidates.iloc[0]['month']
-    
+
     target_dict['target_year'] = int(target_year)
     target_dict['target_month'] = int(target_month)
-    
-    # if we need to add a grazing event, must find the latest previously 
+
+    # if we need to add a grazing event, must find the latest previously
     # scheduled event
     if add_event:
         events_df = read_events(schedule)
@@ -527,13 +542,14 @@ def find_target_month(add_event, schedule, empirical_date, n_months):
         num_events_prev_month = prev_month.shape[0]
         target_dict['num_events_prev_month'] = num_events_prev_month
         target_dict['prev_event_month'] = prev_event_month
-    return target_dict    
-    
+    return target_dict
+
+
 def modify_schedule(schedule, add_event, target_dict, graz_level, outdir,
                     suffix):
     """Add or remove a grazing event in the target month and year from the
     schedule file used by CENTURY."""
-    
+
     success = 0
     try:
         fh, abs_path = mkstemp()
@@ -578,12 +594,12 @@ def modify_schedule(schedule, add_event, target_dict, graz_level, outdir,
                                                     sch.next()
                                                     continue
                                 new_file.write(line)
-                            line = sch.next()           
+                            line = sch.next()
                     new_file.write(line)
     except StopIteration:
         success = 1
     except:
-        print "Unexpected error in modify schedule: ", sys.exc_info()[0]        
+        print "Unexpected error in modify schedule: ", sys.exc_info()[0]
         raise
     if success:
         # if we successfully modified the schedule
@@ -595,14 +611,15 @@ def modify_schedule(schedule, add_event, target_dict, graz_level, outdir,
         shutil.copyfile(abs_path, schedule)
         os.remove(abs_path)
         return
-        
+
+
 def add_new_graz_level(grass, consumed, graz_file, template_level, outdir,
                        suffix):
     """Add a new graz level to the graz.100 file, taking flgrem (percent live
     biomass removed) and fdgrem (percent standing dead removed) calculated by
     livestock model.  The new level code returned by this function must be added
     to the schedule file to implement this grazing level."""
-    
+
     flgrem_key = ';'.join([grass['label'], 'green'])
     fdgrem_key = ';'.join([grass['label'], 'dead'])
     existing_codes = []
@@ -645,9 +662,9 @@ def add_new_graz_level(grass, consumed, graz_file, template_level, outdir,
                             new_file.write(line)
                             line = old_file.next()
                         template.append(line)
-                        new_file.write(line)                        
+                        new_file.write(line)
                 newflgrem = '%.5f' % consumed[flgrem_key] + "           'FLGREM'"
-                newfdgrem = '%.5f' % consumed[fdgrem_key] + "           'FDGREM'" 
+                newfdgrem = '%.5f' % consumed[fdgrem_key] + "           'FDGREM'"
                 new_code = ''.join(random.choice(string.ascii_uppercase)
                                    for _ in range(4))
                 while new_code in existing_codes:
@@ -659,7 +676,7 @@ def add_new_graz_level(grass, consumed, graz_file, template_level, outdir,
                 for param in template:
                     new_file.write(param)
     except:
-        print "Unexpected error in add new graz level: ", sys.exc_info()[0]        
+        print "Unexpected error in add new graz level: ", sys.exc_info()[0]
         raise
     else:
         # if we successfully modified the graz file
@@ -671,9 +688,10 @@ def add_new_graz_level(grass, consumed, graz_file, template_level, outdir,
         os.remove(abs_path)
         return new_code
 
+
 def find_prev_month(year, month):
     """Find CENTURY's representation of the month previous to year, month."""
-    
+
     if month == 1:
         prev_month = 12
         year = year - 1
@@ -682,10 +700,11 @@ def find_prev_month(year, month):
     prev_date = year + float('%.2f' % (prev_month / 12.))
     return prev_date
 
+
 def convert_to_year_month(CENTURY_date):
     """Convert CENTURY's representation of dates (from output file) to year
     and month.  Returns a list containing integer year and integer month."""
-    
+
     if CENTURY_date - math.floor(CENTURY_date) == 0:
         year = int(CENTURY_date - 1)
         month = 12
@@ -694,10 +713,11 @@ def convert_to_year_month(CENTURY_date):
         month = int(round(12. * (CENTURY_date - year)))
     return [year, month]
 
+
 def get_site_weather_files(schedule_file, input_dir):
     """Read filename of site and weather file from schedule file supplied to
     CENTURY."""
-    
+
     s_file = 'NA'
     w_file = 'NA'
     with open(schedule_file, 'r') as read_file:

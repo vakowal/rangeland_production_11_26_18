@@ -11,9 +11,11 @@ import freer_param as FreerParam
 global _time_step
 global _time_divisor_dict
 
+
 def set_time_step(step):
     global _time_step
     _time_step = step
+
 
 _time_divisor_dict = {
     u'year': 365,
@@ -21,6 +23,7 @@ _time_divisor_dict = {
     u'week': 7,
     u'day': 1,
 }
+
 
 def find_steps_per_year():
 
@@ -39,6 +42,7 @@ def find_steps_per_year():
     step_num = year_divisor_dict[_time_step]
     return step_num
 
+
 def find_days_per_step():
     """This function takes a time step specified as a string (e.g. 'day',
     'week', month') and converts to number of days within the step.
@@ -47,6 +51,7 @@ def find_days_per_step():
 
     days_in_step = _time_divisor_dict[_time_step]
     return days_in_step
+
 
 def convert_daily_to_step(daily_amount):
 
@@ -60,6 +65,7 @@ def convert_daily_to_step(daily_amount):
     amount_per_step = float(daily_amount) * float(days_in_step)
     return amount_per_step
 
+
 def convert_step_to_daily(step_amount):
 
     """Converts an amount calculated per time step to the equivalent amount per
@@ -71,6 +77,7 @@ def convert_step_to_daily(step_amount):
     steps_in_day = 1.0/_time_divisor_dict[_time_step]
     amount_per_day = float(step_amount) * steps_in_day
     return amount_per_day
+
 
 class HerdT1:
 
@@ -129,6 +136,7 @@ class HerdT1:
         maintenance = convert_daily_to_step(NE_m_day)
         return maintenance
 
+
 class VegT1:
 
     """Vegetation class for tier 1 containing attributes and methods
@@ -173,6 +181,7 @@ class VegT1:
         self.standing_veg -= DMI  # offtake by the herd
         return diet
 
+
 def calc_energy_t1(forage_quality):
     """Look up energy content of forage given its forage quality, from IPCC 2006
     table 10.8."""
@@ -186,6 +195,7 @@ def calc_energy_t1(forage_quality):
     MJ_per_kg_DM = quality_table[forage_quality]
     return MJ_per_kg_DM
 
+
 def calc_DMI_t1(MJ_per_kg_DM, weight):
     """Calculate dry matter intake (for tier 1) given the energy content of food
     available and average animal weight."""
@@ -196,12 +206,13 @@ def calc_DMI_t1(MJ_per_kg_DM, weight):
     indiv_DMI_step = convert_daily_to_step(indiv_DMI_daily)
     return indiv_DMI_step
 
+
 class HerbivoreClass:
 
     """Herbivore class for tier 2 containing attributes and methods
     characteristic of a single herbivore type."""
 
-    def __init__(self, inputs_dict):                 
+    def __init__(self, inputs_dict):
         global_SRW = 550.
         global_birth_weight = 34.7
         self.FParam = FreerParam.get_params(inputs_dict['type'])
@@ -238,7 +249,7 @@ class HerbivoreClass:
         self.D = -1.
         self.f_w = 0
         self.q_w = 0
-        
+
         # quality and quantity weights
         try:
             if inputs_dict['qual_weight'] is not None:
@@ -250,7 +261,7 @@ class HerbivoreClass:
                 self.f_w = inputs_dict['quant_weight']
         except KeyError:
             pass
-        
+
         # calibration parameters
         try:
             if inputs_dict['CM2'] is not None:
@@ -271,7 +282,7 @@ class HerbivoreClass:
             if inputs_dict['CG2'] is not None:
                 self.FParam.CG2 = inputs_dict['CG2']
         except KeyError:
-            pass            
+            pass
 
     def __repr__(self):
         return '{}: prev weight: {} weight: {} BC: {}'.format(
@@ -284,7 +295,7 @@ class HerbivoreClass:
         """Check model-calculated relative condition against user-supplied
         relative condition, and if they differ by at least 10%, raise an
         error."""
-        
+
         difference_BC = self.BC - BC
         if abs(difference_BC) >= (BC * 0.1):
             raise Exception("""Error: supplied relative condition differs from
@@ -385,20 +396,22 @@ class HerbivoreClass:
 
         milk_kg_per_day = milk_production / (self.FParam.CL5 * self.FParam.CL6)
         return milk_kg_per_day
-    
+
     def calc_ZF(self):
         if self.Z_abs < self.FParam.CR7:
             return 1. + (self.FParam.CR7 - self.Z_abs)
         else:
             return 1.
-    
+
+
 class SiteInfo:
 
     """This class holds information about the physical site."""
 
     def __init__(self, steepness, latitude):
         self.S = steepness  # between 1 and 2
-        self.latitude = latitude        
+        self.latitude = latitude
+
 
 class Supplement:
 
@@ -414,6 +427,7 @@ class Supplement:
         self.CP = crude_protein  # crude protein concentration of supplement
         self.dg = rumen_degradability  # rumen degradability of crude protein of supplement
         self.RQ = 1. - min(FParam.CR14, (FParam.CR3 * (FParam.CR1 - self.DMD)))  # eq 26
+
 
 class FeedType:
 
@@ -454,7 +468,7 @@ class FeedType:
         """Use equations published in Illius et al. 1995 to calculate dry matter
         digestibility from crude protein concentration.  Note that these
         equations were developed for African perennial grasses."""
-        
+
         if flag is None:  # use regression from Illius et al. 1995
             if self.green_or_dead == 'green':
                 self.digestibility = (
@@ -470,7 +484,7 @@ class FeedType:
                     ((self.crude_protein * 100) * 2.2879) + 31.52) / 100
         else:
             raise Exception("Error: unknown flag value {}".format(flag))
-        
+
 
 class Diet:
 
@@ -492,11 +506,12 @@ class Diet:
                                                                    self.DMDf,
                                                                    self.CPIf,
                                                                    self.intake)
-                                                                   
+
     def fill_intake_zero(self, available_forage):
         for feed_type in available_forage:
             label_string = ';'.join([feed_type.label, feed_type.green_or_dead])
             self.intake[label_string] = 0
+
 
 class DietIntermediates:
 
@@ -518,12 +533,13 @@ class DietIntermediates:
         self.Pg1 = 0.
         self.MEItotal = 0.
 
+
 def diet_selection_t2(ZF, HR, prop_legume, supp_available, Imax, FParam,
                       available_forage, f_w=0, q_w=0, force_supp=None,
                       supp=None):
     """Perform diet selection for an individual herbivore, tier 2.  This
     function calculates relative availability, F (including factors like
-    pasture height and animal mouth size) and relative ingestibility, RQ 
+    pasture height and animal mouth size) and relative ingestibility, RQ
     (including factors like pasture digestibility and proportion legume in the
     sward) to select a preferred mixture of forage types, including supplement
     if offered.  Available forage must be supplied to the function in an
@@ -589,7 +605,7 @@ def diet_selection_t2(ZF, HR, prop_legume, supp_available, Imax, FParam,
     for f_index in range(len(available_forage)):
         R_w[f_index] = (R_w[f_index] / sum_Rw) * sum(R)
     Imax = 11.8 / sum(R_w)  # forcing intake of one Animal Unit, Ucross
-    for f_index in range(len(available_forage)):    
+    for f_index in range(len(available_forage)):
         I.append(Imax * R_w[f_index])  # eq 27
         diet_selected.DMDf += (I[f_index] *
                                available_forage[f_index].digestibility)
@@ -607,6 +623,7 @@ def diet_selection_t2(ZF, HR, prop_legume, supp_available, Imax, FParam,
         diet_selected.Is = Imax * Rs  # eq 30
     return diet_selected
 
+
 def calc_total_biomass(available_forage):
     """Calculate the total biomass across forage types, in kg per ha."""
 
@@ -614,6 +631,7 @@ def calc_total_biomass(available_forage):
     for feed_type in available_forage:
         sum_biomass += feed_type.biomass
     return sum_biomass
+
 
 def calc_relative_height(available_forage):
     """Calculate the relative height of each forage type, as described by Freer
@@ -634,11 +652,12 @@ def calc_relative_height(available_forage):
         rel_height.append(height)
     return rel_height
 
+
 def reduce_demand(diet_dict, stocking_density_dict, available_forage):
     """Check whether demand is greater than available biomass for each forage
     type. If it is, reduce intake of that forage type for each herbivore type
     according to its proportion of total demand for that forage type."""
-    
+
     for feed_type in available_forage:
         label_string = '{};{}'.format(feed_type.label,
                                       feed_type.green_or_dead)
@@ -672,22 +691,24 @@ def reduce_demand(diet_dict, stocking_density_dict, available_forage):
                                           feed_type.green_or_dead)
             intake_daily = diet_dict[hclass_label].intake[label_string]
             diet_dict[hclass_label].If += intake_daily
-            diet_dict[hclass_label].DMDf += (intake_daily * 
+            diet_dict[hclass_label].DMDf += (intake_daily *
                                              feed_type.digestibility)
             diet_dict[hclass_label].CPIf += (intake_daily *
                                              feed_type.crude_protein)
         if diet_dict[hclass_label].If > 0:
-            diet_dict[hclass_label].DMDf = (diet_dict[hclass_label].DMDf / 
+            diet_dict[hclass_label].DMDf = (diet_dict[hclass_label].DMDf /
                                             diet_dict[hclass_label].If)
+
 
 def calc_total_intake(diet_dict, stocking_density_dict):
     """Calculate total intake of forage across grass and herbivore types."""
-    
+
     total_intake = 0.
     for hclass_label in diet_dict.keys():
         sd = stocking_density_dict[hclass_label]
         total_intake += convert_daily_to_step(diet_dict[hclass_label].If) * sd
     return total_intake
+
 
 def calc_percent_consumed(available_forage, diet_dict, stocking_density_dict):
     """Calculate percent of each forage type consumed through diet selection.
@@ -713,6 +734,7 @@ def calc_percent_consumed(available_forage, diet_dict, stocking_density_dict):
             perc_removed = float(consumed) / feed_type.biomass
         consumed_dict[label_string] = perc_removed
     return consumed_dict
+
 
 def update_feed_types(grass_list, available_forage):
     """Calculate percent growth from previous and current CENTURY outputs, use
@@ -750,6 +772,7 @@ def update_feed_types(grass_list, available_forage):
             sys.exit(er)
     return available_forage
 
+
 def calc_feed_types(grass_list):
     """Calculate initial available forage classes subject to diet selection,
     from grass output from CENTURY and user-defined percent initial biomass of
@@ -781,6 +804,7 @@ def calc_feed_types(grass_list):
     for feed_type in forage:
         feed_type.rel_availability = feed_type.biomass / sum_biomass
     return forage
+
 
 def calc_forage_classes(Bgreen, Bdead, DMDgreen, DMDdead):
     """Distribute available forage among 6 pools of fixed average digestibility
@@ -822,6 +846,7 @@ def calc_forage_classes(Bgreen, Bdead, DMDgreen, DMDdead):
     for d in range(0, 6):
         forage[d].rel_availability = forage[d].biomass / sum_biomass
     return forage
+
 
 def calc_diet_intermediates(diet, herb_class, prop_legume,
                             DOY, site=None, supp=None):
@@ -902,11 +927,11 @@ def calc_diet_intermediates(diet, herb_class, prop_legume,
         MEl = diet_interm.MP2 / herb_class.FParam.CL5 * kl
         diet_interm.Pl = herb_class.FParam.CL15 * (diet_interm.MP2 /
                          herb_class.FParam.CL6)
-    
+
     # eq 46, protein req for maintenance:
     if herb_class.type in ['B_indicus', 'B_taurus', 'indicus_x_taurus',
                            'hindgut_fermenter']:
-        Pm = (herb_class.FParam.CM12 * math.log(herb_class.W) - 
+        Pm = (herb_class.FParam.CM12 * math.log(herb_class.W) -
               herb_class.FParam.CM13 + herb_class.FParam.CM10 * (diet.If +
               diet.Is) + herb_class.FParam.CM14 * herb_class.W ** 0.75)
     else:
@@ -971,6 +996,7 @@ def calc_diet_intermediates(diet, herb_class, prop_legume,
     diet_interm.MEItotal = MEItotal
     return diet_interm
 
+
 def calc_delta_weight(diet_interm, herb_class):
     """Calculate weight gain or loss from the diet selected by a herbivore
     class.  Energy is first allocated to maintenance, then to growth.  This
@@ -992,6 +1018,7 @@ def calc_delta_weight(diet_interm, herb_class):
     else:
         delta_W = herb_class.FParam.CG13 * EBG  # eq 117, kg
     return delta_W
+
 
 def check_max_intake(diet, diet_interm, herb_class, max_intake):
     """Modify the maximum intake possible, given characteristics of the diet
@@ -1019,6 +1046,7 @@ def check_max_intake(diet, diet_interm, herb_class, max_intake):
             reduction_factor = 1 - ((1 - (RDPI / diet_interm.RDPR)) * 0.75)
         max_intake = max_intake * reduction_factor
     return max_intake
+
 
 def check_milk_production(FParam, diet_interm):
     """Check to see if protein in the diet is sufficient to support predicted
@@ -1049,6 +1077,7 @@ def check_initial_biomass(grass_list):
     if total_perc_biomass < 1.:
         raise ValueError("Initial percent biomass adds to less than 1")
 
+
 def one_step(site, DOY, herb_class, available_forage, prop_legume,
              supp_available, supp, intake=None, force_supp=None):
     """One step of the forage model, with one herbivore type, if available
@@ -1063,24 +1092,24 @@ def one_step(site, DOY, herb_class, available_forage, prop_legume,
     HR = calc_relative_height(available_forage)
     if intake is not None:  # if forage intake should be forced
         diet = Diet()
-        diet.If = intake    
+        diet.If = intake
         diet.DMDf = available_forage[0].digestibility  # this is super hack-y
         diet.CPIf = intake * available_forage[0].crude_protein  # and only works with one type of available forage
         diet.Is = supp.DMO  # also force intake of all supplement offered
         diet_interm = calc_diet_intermediates(diet, supp, herb_class,
                                               site, prop_legume, DOY)
-    else:        
-        diet = diet_selection_t2(ZF, HR, prop_legume, supp_available, 
+    else:
+        diet = diet_selection_t2(ZF, HR, prop_legume, supp_available,
                                  max_intake, herb_class.FParam,
                                  available_forage, supp=supp)
-        diet_interm = calc_diet_intermediates(diet, herb_class, prop_legume, 
+        diet_interm = calc_diet_intermediates(diet, herb_class, prop_legume,
                                               DOY, site, supp=supp)
         if herb_class.type != 'hindgut_fermenter':
             reduced_max_intake = check_max_intake(diet, diet_interm,
                                                   herb_class, max_intake)
             row.append(reduced_max_intake)
             if reduced_max_intake < max_intake:
-                diet = diet_selection_t2(ZF, HR, prop_legume, supp_available, 
+                diet = diet_selection_t2(ZF, HR, prop_legume, supp_available,
                                          reduced_max_intake, herb_class.FParam,
                                          available_forage, supp=supp)
                 diet_interm = calc_diet_intermediates(diet, herb_class,
@@ -1097,6 +1126,7 @@ def one_step(site, DOY, herb_class, available_forage, prop_legume,
     row.append(delta_W)
     return row
 
+
 def calc_total_stocking_density(herbivore_list):
     """Calculate the total stocking density of herbivores, including multiple
     classes."""
@@ -1106,14 +1136,16 @@ def calc_total_stocking_density(herbivore_list):
         stocking_density += herb_class.stocking_density
     return stocking_density
 
+
 def populate_sd_dict(herbivore_list):
     """Create and populate the stocking density dictionary, giving the stocking
     density of each herbivore type."""
-    
+
     stocking_density_dict = {}
     for herb_class in herbivore_list:
         stocking_density_dict[herb_class.label] = herb_class.stocking_density
     return stocking_density_dict
+
 
 def fill_dict(d_fill, fill_val):
     """Fill a dictionary with fill_val so that it can be converted to a pandas
@@ -1129,9 +1161,10 @@ def fill_dict(d_fill, fill_val):
                 d_fill[key].append(fill_val)
     return d_fill
 
+
 def write_inputs_log(args, now_str):
     """Write model inputs to a text file."""
-    
+
     save_as = os.path.join(args['outdir'], "forage-log-%s.txt" % now_str)
     with open(save_as, 'w') as new_file:
         new_file.write("Rangeland production model launched %s\n" % now_str)
@@ -1142,13 +1175,14 @@ def write_inputs_log(args, now_str):
         for key in args.keys():
             new_file.write('%s: %s\n' % (key, args[key]))
 
+
 def calc_diet_segregation(diet_dict):
     """Calculate the segregation between diets of two herbivores. This is
     calculated as the average difference in percentage of the diet comprised of
     each forage type.  So a value of 1 means they eat completely separate grass
     types. A value of 0 means they select grass types in identical
     proportions."""
-    
+
     if len(diet_dict.keys()) < 2:
         return 0
     perc_lists = []
