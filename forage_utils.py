@@ -241,14 +241,19 @@ class HerbivoreClass:
                         (self.SRW*0.3071)
         if self.sex == 'NA':
             self.SRW = (self.SRW + self.SRW * 1.4) / 2
-        self.Nmax = -1.
-        self.N = -1.
-        self.Z = -1.
-        self.Z_abs = -1.
-        self.BC = -1.
+        self.Nmax = self.SRW - (self.SRW - self.Wbirth) * math.exp(
+                    (-self.FParam.CN1 * self.A)/(self.SRW ** self.FParam.CN2))  # maximum body size (kg), eq 1
+        self.N = self.FParam.CN3 * self.Nmax + (1. - self.FParam.CN3) \
+                     * self.Wprev  # normal weight
+        self.Z = self.N / self.SRW  # relative size
+        self.Z_abs = self.N / 542.  # absolute size
+        self.BC = self.W / self.N  # relative condition
         self.D = -1.
         self.f_w = 0
         self.q_w = 0
+        self.reproductive_status = None
+        self.A_foet = 0  # days since conception, if pregnant
+        self.A_y = 0  # days since birth, if lactating
 
         # quality and quantity weights
         try:
@@ -305,27 +310,57 @@ class HerbivoreClass:
                  # Supplied relative condition: %f.  Calculated relative
                  # condition: %f. % (BC, calc_BC)
 
-    def update(self, delta_weight=0, delta_time=0):
-        """Update age and weight of a herbivore class after a single time step
-        of the model.  This function also calculates all class attributes that
-        are dependent on other class attributes, so it must also be performed
-        upon initialization of the herbivore class."""
+    def update(
+            self, delta_days, conception_month=None, birth_month=None,
+            weaning_month=None):
+        """Update reproductive status, days since conception, days since birth,
+        and weight including conceptus.
 
-        self.Wprev = self.W
-        self.W = self.W + delta_weight
-        if self.W < self.Wbirth:
-            self.W = 0
-        self.A = self.A + delta_time
-        self.Nmax = self.SRW - (self.SRW - self.Wbirth) * math.exp(
-                    (-self.FParam.CN1 * self.A)/(self.SRW ** self.FParam.CN2))  # maximum body size (kg), eq 1
-        if self.Wprev < self.Nmax:
-            self.N = self.FParam.CN3 * self.Nmax + (1. - self.FParam.CN3) \
-                     * self.Wprev  # normal weight
-        else:
-            self.N = self.Nmax
-        self.Z = self.N / self.SRW  # relative size
-        self.BC = self.W / self.N  # relative condition
-        self.Z_abs = self.N / 542.  # absolute size
+        Parameters:
+            delta_days (float): number of days in a model timestep
+            conception_month (bool): do breeding females become pregnant during
+                this timestep?
+            birth_month (bool): do breeding females give birth and begin to
+                lactate during this timestep?
+            weaning_month (bool): do breeding females cease lactation during
+                this timestep?  TODO: does weaning necessarily coincide with conception?
+
+        Modifies:
+            reproductive status, age of young, time since conception, and
+                weight of a the herbivore class
+
+        Returns:
+            None
+        """
+        # update time since conception and weight of conceptus
+        # if pregnant or lactating
+        if self.reproductive_status == 'pregnant':
+            self.A_foet = self.A_foet + delta_days
+            RA = self.A_foet / self.FParam.CP1
+            BW = (
+                (1 - self.FParam.CP4 + self.FParam.CP4 *
+                self.Z) * self.FParam.CP15 * self.SRW)
+            W_c_1 = self.FParam.CP5 * BW
+            W_c_2 = math.exp(self.CP6 * (1 - math.exp(self.CP7 * (1 - RA))))
+            W_c = W_c_1 * W_c_2  # equation 62, weight of conceptus
+            self.W = self.Wprev + W_c
+        if self.reproductive_status == 'lactating':
+            self.A_y = self.A_y + delta_days
+
+        # update reproductive status of breeding females
+        if self.sex == 'breeding_female' and conception_month:
+            self.reproductive_status = 'pregnant'
+            self.A_foet = 1
+        if self.sex == 'breeding_female' and birth_month:
+            self.reproductive_status = 'lactating'
+            self.W = self.Wprev
+            self.A_foet = 0
+            self.A_y = 1
+        if self.sex == 'breeding_female' and weaning_month:
+            self.reproductive_status = None
+            self.W = self.Wprev
+            self.A_foet = 0
+            self.A_y = 0
 
     def calc_max_intake(self):
         """Calculate the maximum potential daily intake of dry matter (kg) from
@@ -342,13 +377,13 @@ class HerbivoreClass:
             CF = 1.
         YF = 1.  # eq 4 gives a different value for unweaned animals
         TF = 1.  # ignore effect of temperature on intake
-        if self.sex == 'lac_female':
-            Ay = 30.  # assumed days since birth of young
+        if self.reproductive_status == 'lactating':
             BCpart = self.BC  # assumed body condition at parturition
-            Mi = Ay / self.FParam.CI8
-            WL = self.Z * ((BCpart - self.BC) / Ay)
-            if Ay >= self.FParam.CL2 and WL > self.FParam.CI14 * math.exp(-(
-                                                  self.FParam.CI13 * Ay) ** 2):
+            Mi = herb_class.A_y / self.FParam.CI8
+            WL = self.Z * ((BCpart - self.BC) / herb_class.A_y)
+            if (herb_class.A_y >= self.FParam.CL2 and
+                    WL > self.FParam.CI14 *
+                    math.exp(-(self.FParam.CI13 * herb_class.A_y) ** 2)):
                 LB = (1. - self.FParam.CI12 * WL) / self.FParam.CI13
             else:
                 LB = 1.
@@ -515,23 +550,27 @@ class Diet:
 
 class DietIntermediates:
 
-    """This class holds all intermediary values used to calculate weight gain
-    and milk production from the diet. Must hold values needed to modify
-    intake, modify milk production, and allocate energy and protein."""
+    """This class holds intermediate quantities calculated from the diet,
+    including total energy and protein intake (MEItotal and RDPLS), energy and
+    protein required for maintenance, pregnancy, lactation, and wool growth.
+    Also includes the intermediate values necessary to restrict maximum intake
+    due to low protein content of the diet."""
 
     def __init__(self):
         self.RDPIs = -1.
         self.RDPIf = -1.
         self.RDPR = -1.
-        self.MP2 = 0.
-        self.Pl = 0.
         self.L = -1.
-        self.Pnet = -1.
-        self.PCG = -1.
-        self.EVG = -1.
-        self.NEg1 = -1.
-        self.Pg1 = 0.
-        self.MEItotal = 0.
+        self.MEItotal = 0.  # total metabolizable energy intake
+        self.MEm = 0.  # energy required for maintenance
+        self.MEc = 0.  # energy required for pregnancy
+        self.MEl = 0.  # energy required for lactation
+        self.NEw = 0.  # energy required for wool growth
+        self.DPLS = 0.  # digestible protein leaving the stomach
+        self.Pm = 0.  # protein required for maintenance
+        self.Pc = 0.  # protein required for pregnancy
+        self.Pl = 0.  # protein required for lactation
+        self.Pw = 0.  # protein required for wool growth
 
 
 def diet_selection_t2(ZF, HR, prop_legume, supp_available, Imax, FParam,
@@ -874,18 +913,9 @@ def calc_diet_intermediates(diet, herb_class, prop_legume,
     MEIs = (13.3 * supp.DMD + 23.4 * supp.EE + 1.32) * diet.Is  # eq 32
     FMEIs = (13.3 * supp.DMD + 1.32) * diet.Is  # eq 32, supp.EE = 0
     MEItotal = MEIf + MEIs  # assuming no intake of milk
-    prop_forage = MEIf / MEItotal
-    prop_supp = MEIs / MEItotal
-    prop_milk = 0
-    prop_solid = prop_forage + prop_supp
     M_per_Dforage = MEIf / diet.If
     kl = herb_class.FParam.CK5 + herb_class.FParam.CK6 * M_per_Dforage  # eq 34
     km = (herb_class.FParam.CK1 + herb_class.FParam.CK2 * M_per_Dforage)  # eq 33 efficiency of energy use for maintenance
-    kgs = herb_class.FParam.CK16 * supp.M_per_D  # eq 37 efficiency of energy use for
-                                      # growth from supplement
-    kgf = (herb_class.FParam.CK13 * (1. + herb_class.FParam.CK14 * prop_legume)
-          * (1. + herb_class.FParam.CK15 * ((math.pi / 40.) * math.sin(2. *
-          math.pi * (DOY / 365.)))) * M_per_Dforage)  # eq 38, 39, 40 eff. energy use for growth from forage
     Emove = herb_class.FParam.CM16 * herb_class.D * herb_class.W
     Egraze = herb_class.FParam.CM6 * herb_class.W * diet.If * \
              (herb_class.FParam.CM7 - diet.DMDf) + Emove
@@ -900,33 +930,47 @@ def calc_diet_intermediates(diet, herb_class, prop_legume,
     if herb_class.sex == 'NA':
         MEm = (MEm + MEm * 1.15) / 2
     diet_interm.L = (MEItotal / MEm) - 1.
+
+    if herb_class.reproductive_status == 'pregnant':
+        RA = herb_class.A_foet / herb_class.FParam.CP1
+        BW = (
+            (1 - herb_class.FParam.CP4 + herb_class.FParam.CP4 *
+            herb_class.Z) * herb_class.FParam.CP15 * herb_class.SRW)
+        BC_foet = 1  # assume condition of foetus is 1, ignoring weight
+        # assume she is pregnant with one foetus
+        MEc_num1 = (
+            herb_class.FParam.CP8 * (herb_class.FParam.CP5 * BW) * BC_foet)
+        MEc_num2 = (
+            (herb_class.FParam.CP9 * herb_class.FParam.CP10) /
+            herb_class.FParam.CP1)
+        MEc_num3 = math.exp(
+            herb_class.FParam.CP10 * (1 - RA) + herb_class.FParam.CP9 *
+            (1 - math.exp(herb_class.FParam.CP10*(1 - RA))))
+        MEc = (MEc_num1 * MEc_num2 * MEc_num3) / herb_class.FParam.CK8
+
+        Pc_1 = herb_class.FParam.CP11 * (herb_class.FParam.CP5 * BW) * BC_foet
+        Pc_2 = (
+            (herb_class.FParam.CP12 * herb_class.FParam.CP13) /
+            herb_class.FParam.CP1)
+        Pc_3 = herb_class.FParam.CP13 * (1 - RA)
+        Pc_4 = (
+            herb_class.FParam.CP12 *
+            (1 - math.exp(herb_class.FParam.CP13 * (1 - RA))))
+        Pc_5 = math.exp(Pc_3 + Pc_4)
+        Pc = Pc_1 * Pc_2 * Pc_5
     MEl = 0.
-    if herb_class.sex == 'lac_female':
-        Ay = 30.  # assumed days since birth of young
-        WMpeak = herb_class.FParam.CI11 * herb_class.SRW  # assumed expected milk yield at peak lactation (kg/day)
+    Pl = 0.
+    if herb_class.reproductive_status == 'lactating':
         BCpart = herb_class.BC  # assumed body condition at parturition
-        WL = herb_class.Z * ((BCpart - herb_class.BC) / Ay)
-        if Ay >= herb_class.FParam.CL2 and WL > herb_class.FParam.CI14 * \
-                                 math.exp(-(herb_class.FParam.CI13 * Ay) ** 2):
-            LB = (1. - herb_class.FParam.CI12 * WL) / herb_class.FParam.CI13
-        else:
-            LB = 1.  # eq 72 gives a different calculation here
-        Mm = (Ay + herb_class.FParam.CL1) / herb_class.FParam.CL2
-        MExs = (MEItotal - MEm) * herb_class.FParam.CL5 * kl
-        MPmax = (herb_class.FParam.CL5 * herb_class.FParam.CL6 * WMpeak *
-                BCpart * LB * Mm ** herb_class.FParam.CL4 * math.exp(
-                herb_class.FParam.CL4 * (1 - Mm)))  # eq 66 (no suckling young)
-        MR = MExs / MPmax
-        AD = max(Ay, MR / (2 * herb_class.FParam.CL22))
-        MP1 = (herb_class.FParam.CL7 * MPmax) / (1. + math.exp(-(
-               -herb_class.FParam.CL19 + herb_class.FParam.CL20 * MR +
-               herb_class.FParam.CL21 * AD * (MR - herb_class.FParam.CL22 * AD)
-               - herb_class.FParam.CL23 * herb_class.BC * (MR -
-               herb_class.FParam.CL24 * herb_class.BC))))  # eq 68
-        diet_interm.MP2 = MP1
-        MEl = diet_interm.MP2 / herb_class.FParam.CL5 * kl
-        diet_interm.Pl = herb_class.FParam.CL15 * (diet_interm.MP2 /
-                         herb_class.FParam.CL6)
+        Mm = (herb_class.A_y + herb_class.FParam.CL1) / herb_class.FParam.CL2
+
+        MPmax_1 = herb_class.FParam.CL0 * herb_class.SRW ** 0.75 * herb_class.Z
+        MPmax_2 = BCpart * Mm ** herb_class.FParam.CL3
+        MPmax_3 = math.exp(herb_class.FParam.CL3 * (1 - Mm))
+        MPmax = MPmax_1 * MPmax_2 * MPmax_3  # eq 66, with suckling young
+
+        MEl = MPmax / herb_class.FParam.CL5 * kl
+        Pl = herb_class.FParam.CL15 * (MPmax / herb_class.FParam.CL6)
 
     # eq 46, protein req for maintenance:
     if herb_class.type in ['B_indicus', 'B_taurus', 'indicus_x_taurus',
@@ -942,15 +986,6 @@ def calc_diet_intermediates(diet, herb_class, prop_legume,
     diet_interm.RDPR = (herb_class.FParam.CRD4 + herb_class.FParam.CRD5 * (1. -
                         math.exp(-herb_class.FParam.CRD6 * (diet_interm.L +
                         1.)))) * (RF * MEIf + FMEIs)  # eq 51
-    if herb_class.sex == 'lac_female':
-        if MEItotal < (MEm + MEl):
-            kg = kl / herb_class.FParam.CK10
-        else:
-            kg = herb_class.FParam.CK9 * kl
-    elif MEItotal < MEm:  # non-lactating animals
-        kg = km / herb_class.FParam.CK11
-    else:
-        kg = (prop_supp * kgs) + (prop_forage * kgf)  # eq 36
     diet_interm.RDPIs = supp.CP * supp.dg * diet.Is
     diet_interm.RDPIf = diet.CPIf * min(0.84 * diet.DMDf + 0.33, 1.)
     UDPI = (diet.Is * supp.CP - diet_interm.RDPIs) + (diet.CPIf -
@@ -958,7 +993,7 @@ def calc_diet_intermediates(diet, herb_class, prop_legume,
     Dudp = max(herb_class.FParam.CA1, min(herb_class.FParam.CA3 * diet.CPIf -
                herb_class.FParam.CA4, herb_class.FParam.CA2))
     DPLSmcp = herb_class.FParam.CA6 * herb_class.FParam.CA7 * diet_interm.RDPR
-    DPLS = Dudp * UDPI + DPLSmcp  # eq 53: degradable protein leaving the stomach
+    diet_interm.DPLS = Dudp * UDPI + DPLSmcp  # eq 53: degradable protein leaving the stomach
     Pw = 0.
     NEw = 0.
     if herb_class.type in ['sheep', 'camelid']:
@@ -966,33 +1001,20 @@ def calc_diet_intermediates(diet, herb_class, prop_legume,
                                          -herb_class.FParam.CW12*herb_class.A))
         DLF = 1 + herb_class.FParam.CW6  # assume day length = 12
         DPLSw = max(0., DPLS - herb_class.FParam.CW9*diet_interm.Pl)
-        MEw = max(0., MEItotal - MEl)
+        MEw = max(0., MEItotal - (MEl + MEc))
         Pw = min(herb_class.FParam.CW7*(herb_class.SFW/herb_class.SRW)*AF*DLF*\
                  DPLSw, herb_class.FParam.CW8*(herb_class.SFW/herb_class.SRW)*\
                  AF*DLF*MEw)  # eq 77: protein req for wool
         NEw = (herb_class.FParam.CW1*(Pw-herb_class.FParam.CW2 * herb_class.Z)/
                herb_class.FParam.CW3)  # eq 81: energy req for wool
-    diet_interm.NEg1 = kg * (MEItotal - MEm - MEl) - NEw  # eq 101
-    kDPLS = herb_class.FParam.CG2 # eq 103 simplified for zero milk intake
-    diet_interm.Pg1 = kDPLS * (DPLS - (Pm + diet_interm.Pl) / kDPLS) - \
-                      (Pw/herb_class.FParam.CG1)
-
-    Z_backtick = min(1. - (1. - herb_class.Wbirth / herb_class.SRW) *
-                     math.exp((-herb_class.FParam.CN1/herb_class.SRW **
-                     herb_class.FParam.CN2) * herb_class.A), herb_class.Nmax /
-                     herb_class.SRW)
-    ZF1 = 1. / (1. + math.exp(-herb_class.FParam.CG4 * (Z_backtick -
-                herb_class.FParam.CG5)))
-    ZF2 = max(0., min((Z_backtick - herb_class.FParam.CG6) /
-              (herb_class.FParam.CG7 - herb_class.FParam.CG6), 1))
-    diet_interm.EVG = (herb_class.FParam.CG8 - ZF1 * (herb_class.FParam.CG9 -
-                       herb_class.FParam.CG10 * (diet_interm.L - 1)) + ZF2 *
-                       herb_class.FParam.CG11 * (herb_class.BC - 1.))
-    diet_interm.PCG = (herb_class.FParam.CG12 + ZF1 * (herb_class.FParam.CG13 -
-                       herb_class.FParam.CG14 * (diet_interm.L - 1)) + ZF2 *
-                       herb_class.FParam.CG15 * (herb_class.BC - 1.))
-    diet_interm.Pnet = diet_interm.Pg1 - diet_interm.PCG * (diet_interm.NEg1 /
-                       diet_interm.EVG)
+    diet_interm.MEm = MEm
+    diet_interm.MEc = MEc
+    diet_interm.MEl = MEl
+    diet_interm.NEw = NEw
+    diet_interm.Pm = Pm
+    diet_interm.Pl = Pl
+    diet_interm.Pc = Pc
+    diet_interm.Pw = Pw
     diet_interm.MEItotal = MEItotal
     return diet_interm
 

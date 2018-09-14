@@ -6,7 +6,7 @@ class FreerParamCattle:
 
     """Class containing parameters for cattle described in Freer et al. 2012,
     using same names as Freer et al 2012."""
-    
+
     def __init__(self, breed):
         self.CN1 = 0.0115
         self.CN2 = 0.27
@@ -49,12 +49,14 @@ class FreerParamCattle:
         self.CK3 = 0.85
         self.CK5 = 0.4
         self.CK6 = 0.02
+        self.CK8 = 0.133
         self.CK10 = 0.84
         self.CK11 = 0.8
         self.CK13 = 0.035
         self.CK14 = 0.33
         self.CK15 = 0.12
         self.CK16 = 0.043
+        self.CL0 = 0.375
         self.CL1 = 4.
         self.CL2 = 30.
         self.CL4 = 0.6
@@ -134,12 +136,28 @@ class FreerParamCattle:
             self.CG13 = 0.14
         self.CG14 = 0.008
         self.CG15 = 0.115
-        
+        self.CP1 = 285
+        self.CP2 = 2.2
+        self.CP3 = 1.77
+        self.CP4 = 0.33
+        self.CP5 = 1.8
+        self.CP6 = 2.42
+        self.CP7 = 1.16
+        self.CP8 = 4.11
+        self.CP9 = 343.5
+        self.CP10 = 0.0164
+        self.CP11 = 0.134
+        self.CP12 = 6.22
+        self.CP13 = 0.747
+        self.CP14 = 1
+        self.CP15 = 0.07
+
+
 class FreerParamSheep:
 
     """Class containing parameters for sheep described in Freer et al. 2012,
     using same names as Freer et al 2012."""
-    
+
     def __init__(self):
         self.CN1 = 0.0157
         self.CN2 = 0.27
@@ -174,12 +192,14 @@ class FreerParamSheep:
         self.CK3 = 0.85
         self.CK5 = 0.4
         self.CK6 = 0.02
+        self.CK8 = 0.133
         self.CK10 = 0.84
         self.CK11 = 0.8
         self.CK13 = 0.035
         self.CK14 = 0.33
         self.CK15 = 0.12
         self.CK16 = 0.043
+        self.CL0 = 0.486
         self.CL1 = 2.
         self.CL2 = 22.
         self.CL5 = 0.94
@@ -246,12 +266,28 @@ class FreerParamSheep:
         self.CW8 = 0.016
         self.CW9 = 1.
         self.CW12 = 0.025
+        self.CP1 = 150
+        self.CP2 = 1.304
+        self.CP3 = 2.625
+        self.CP4 = 0.33
+        self.CP5 = 1.43
+        self.CP6 = 3.38
+        self.CP7 = 0.91
+        self.CP8 = 4.33
+        self.CP9 = 4.37
+        self.CP10 = 0.965
+        self.CP11 = 0.145
+        self.CP12 = 4.56
+        self.CP13 = 0.9
+        self.CP14 = 1.5
+        self.CP15 = 0.1
+
 
 class FreerParamCamelid:
 
     """Class containing parameters for new world camelids, based on the
     parameters for sheep described in Freer et al. 2012."""
-    
+
     def __init__(self):
         self.CN1 = 0.0157
         self.CN2 = 0.27
@@ -363,7 +399,7 @@ class FreerParamHindgut:
 
     """Class containing parameters for hindgut fermenters, based on the
     parameters for B. indicus cattle described in Freer et al. 2012."""
-    
+
     def __init__(self):
         self.CN1 = 0.0115
         self.CN2 = 0.27
@@ -469,7 +505,7 @@ class FreerParamHindgut:
 
 def get_params(type):
     """Return parameters specific to the animal type or breed."""
-    
+
     if type in ['B_indicus', 'B_taurus', 'indicus_x_taurus']:
         return FreerParamCattle(type)
     elif type == 'sheep':

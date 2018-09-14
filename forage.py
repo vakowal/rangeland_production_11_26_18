@@ -68,8 +68,6 @@ def execute(args):
             necessary descriptors of the grass available as forage
         args['supp_csv'] - an absolute path to a csv file containing all
             necessary descriptors of supplemental feed (optional)
-        args['restart_yearly'] - re-initialize the animal herd every year?
-            hack-y option for CGIAR Peru integration with SWAT.
         args['diet_verbose'] - save details of diet selection?
         args['digestibility_flag'] - flag to use a particular regression
             equation to calculate digestibility from crude protein
@@ -77,7 +75,6 @@ def execute(args):
         returns nothing."""
 
     for opt_arg in [
-            'restart_yearly', 'restart_monthly', 'diet_verbose',
             'grz_months', 'density_series', 'digestibility_flag']:
         try:
             val = args[opt_arg]
@@ -106,11 +103,10 @@ def execute(args):
         for h_class in herbivore_input:
             herd = forage.HerbivoreClass(h_class)
             herd.update()
-            BC = 1  # TODO get optional BC from user
-            # if BC:
-                # herd.check_BC(BC)
-
+            BC = 1
             herbivore_list.append(herd)
+    # TODO detect step of conception, birth if any herbivores are
+    # of sex == 'breeding_female'
     grass_list = (pandas.read_csv(
         args[u'grass_csv'])).to_dict(orient='records')
     for grass in grass_list:
@@ -119,11 +115,8 @@ def execute(args):
     forage.check_initial_biomass(grass_list)
     results_dict = {'step': [], 'year': [], 'month': []}
     for h_class in herbivore_list:
-        results_dict[h_class.label + '_kg'] = []
-        results_dict[h_class.label + '_gain_kg'] = []
+        results_dict[h_class.label + 'XX'] = []  # TODO what to track?
         results_dict[h_class.label + '_intake_forage_per_indiv_kg'] = []
-        if h_class.sex == 'lac_female':
-            results_dict['milk_prod_kg'] = []
     for grass in grass_list:
         results_dict[grass['label'] + '_green_kgha'] = []
         results_dict[grass['label'] + '_dead_kgha'] = []
@@ -240,8 +233,7 @@ def execute(args):
     results_dict['month'].append(month)
     results_dict['total_offtake'].append('NA')
     for herb_class in herbivore_list:
-        results_dict[herb_class.label + '_kg'].append(herb_class.W)
-        results_dict[herb_class.label + '_gain_kg'].append('NA')
+        results_dict[herb_class.label + 'XXX'].append(??)  # TODO what to track?
         results_dict[herb_class.label +
                      '_intake_forage_per_indiv_kg'].append('NA')
     try:
@@ -258,13 +250,12 @@ def execute(args):
             else:
                 month = step_month
                 year = (step / 12) + args[u'start_year']
-            if (month == 1 and args['restart_yearly'] and
-                    args[u'herbivore_csv'] is not None):
-                herbivore_list = []
-                for h_class in herbivore_input:
-                    herd = forage.HerbivoreClass(h_class)
-                    herd.update()
-                    herbivore_list.append(herd)
+            # TODO detect whether this step is a conception_month, birth_month,
+            # or weaning_month
+            delta_days = 30.
+            for herb_class in herbivore_list:
+                herb_class.update(delta_days)
+
             # get biomass and crude protein for each grass type from CENTURY
             for grass in grass_list:
                 output_file = os.path.join(
@@ -378,30 +369,7 @@ def execute(args):
                 diet_interm = forage.calc_diet_intermediates(
                     diet, herb_class, args[u'prop_legume'], args[u'DOY'], site,
                     supp)
-                if herb_class.sex == 'lac_female':
-                    milk_production = forage.check_milk_production(
-                        herb_class.FParam, diet_interm)
-                    milk_kg_day = herb_class.calc_milk_yield(
-                        milk_production)
-                delta_W = forage.calc_delta_weight(
-                    diet_interm, herb_class)
-                if (args['grz_months'] is not None and step not in
-                        args['grz_months']):
-                    delta_W_step = 0
-                else:
-                    delta_W_step = forage.convert_daily_to_step(delta_W)
-                try:
-                    if not args['restart_monthly']:
-                        herb_class.update(
-                            delta_weight=delta_W_step,
-                            delta_time=forage.find_days_per_step())
-                except KeyError:
-                    herb_class.update(
-                        delta_weight=delta_W_step,
-                        delta_time=forage.find_days_per_step())
-                results_dict[herb_class.label + '_kg'].append(herb_class.W)
-                results_dict[herb_class.label + '_gain_kg'].append(
-                    delta_W_step)
+                # TODO track final outputs from diet intermediates
                 results_dict[
                     herb_class.label + '_intake_forage_per_indiv_kg'].append(
                         forage.convert_daily_to_step(diet.If))
