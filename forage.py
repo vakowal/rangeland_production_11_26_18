@@ -75,7 +75,8 @@ def execute(args):
         returns nothing."""
 
     for opt_arg in [
-            'grz_months', 'density_series', 'digestibility_flag']:
+            'grz_months', 'density_series', 'digestibility_flag',
+            'diet_verbose']:
         try:
             val = args[opt_arg]
         except KeyError:
@@ -100,13 +101,9 @@ def execute(args):
     if args[u'herbivore_csv'] is not None:
         herbivore_input = (pandas.read_csv(
             args[u'herbivore_csv'])).to_dict(orient='records')
-        for h_class in herbivore_input:
-            herd = forage.HerbivoreClass(h_class)
-            herd.update()
-            BC = 1
+        for herb_class in herbivore_input:
+            herd = forage.HerbivoreClass(herb_class)
             herbivore_list.append(herd)
-    # TODO detect step of conception, birth if any herbivores are
-    # of sex == 'breeding_female'
     grass_list = (pandas.read_csv(
         args[u'grass_csv'])).to_dict(orient='records')
     for grass in grass_list:
@@ -114,9 +111,12 @@ def execute(args):
             grass['label'] = str(grass['label'])
     forage.check_initial_biomass(grass_list)
     results_dict = {'step': [], 'year': [], 'month': []}
-    for h_class in herbivore_list:
-        results_dict[h_class.label + 'XX'] = []  # TODO what to track?
-        results_dict[h_class.label + '_intake_forage_per_indiv_kg'] = []
+    for herb_class in herbivore_list:
+        results_dict[herb_class.label + 'MEItotal'] = []
+        results_dict[herb_class.label + 'DPLS'] = []
+        results_dict[herb_class.label + 'E_req'] = []
+        results_dict[herb_class.label + 'P_req'] = []
+        results_dict[herb_class.label + '_intake_forage_per_indiv_kg'] = []
     for grass in grass_list:
         results_dict[grass['label'] + '_green_kgha'] = []
         results_dict[grass['label'] + '_dead_kgha'] = []
@@ -233,7 +233,10 @@ def execute(args):
     results_dict['month'].append(month)
     results_dict['total_offtake'].append('NA')
     for herb_class in herbivore_list:
-        results_dict[herb_class.label + 'XXX'].append(??)  # TODO what to track?
+        results_dict[herb_class.label + 'MEItotal'].append('NA')
+        results_dict[herb_class.label + 'DPLS'].append('NA')
+        results_dict[herb_class.label + 'E_req'].append('NA')
+        results_dict[herb_class.label + 'P_req'].append('NA')
         results_dict[herb_class.label +
                      '_intake_forage_per_indiv_kg'].append('NA')
     try:
@@ -250,11 +253,8 @@ def execute(args):
             else:
                 month = step_month
                 year = (step / 12) + args[u'start_year']
-            # TODO detect whether this step is a conception_month, birth_month,
-            # or weaning_month
-            delta_days = 30.
             for herb_class in herbivore_list:
-                herb_class.update(delta_days)
+                herb_class.update(step)
 
             # get biomass and crude protein for each grass type from CENTURY
             for grass in grass_list:
@@ -369,7 +369,15 @@ def execute(args):
                 diet_interm = forage.calc_diet_intermediates(
                     diet, herb_class, args[u'prop_legume'], args[u'DOY'], site,
                     supp)
-                # TODO track final outputs from diet intermediates
+                # TODO revise final dietary outputs here
+                results_dict[herb_class.label + 'MEItotal'].append(
+                    diet_interm.MEItotal)
+                results_dict[herb_class.label + 'DPLS'].append(
+                    diet_interm.DPLS)
+                results_dict[herb_class.label + 'E_req'].append(
+                    diet_interm.MEm + diet_interm.MEc + diet_interm.MEl)
+                results_dict[herb_class.label + 'P_req'].append(
+                    diet_interm.Pm + diet_interm.Pc + diet_interm.Pl)
                 results_dict[
                     herb_class.label + '_intake_forage_per_indiv_kg'].append(
                         forage.convert_daily_to_step(diet.If))

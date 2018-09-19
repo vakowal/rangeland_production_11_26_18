@@ -59,6 +59,7 @@ class FreerParamCattle:
         self.CL0 = 0.375
         self.CL1 = 4.
         self.CL2 = 30.
+        self.CL3 = 0.6
         self.CL4 = 0.6
         self.CL5 = 0.94
         self.CL6 = 3.1
@@ -202,6 +203,7 @@ class FreerParamSheep:
         self.CL0 = 0.486
         self.CL1 = 2.
         self.CL2 = 22.
+        self.CL3 = 1.
         self.CL5 = 0.94
         self.CL6 = 4.7
         self.CL7 = 1.17

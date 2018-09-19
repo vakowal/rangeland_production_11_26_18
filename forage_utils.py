@@ -241,6 +241,11 @@ class HerbivoreClass:
                         (self.SRW*0.3071)
         if self.sex == 'NA':
             self.SRW = (self.SRW + self.SRW * 1.4) / 2
+        if self.sex == 'breeding_female':
+            self.conception_step = inputs_dict['conception_step']
+            self.calving_interval = inputs_dict['calving_interval']
+            self.lactation_duration = inputs_dict['lactation_duration']
+
         self.Nmax = self.SRW - (self.SRW - self.Wbirth) * math.exp(
                     (-self.FParam.CN1 * self.A)/(self.SRW ** self.FParam.CN2))  # maximum body size (kg), eq 1
         self.N = self.FParam.CN3 * self.Nmax + (1. - self.FParam.CN3) \
@@ -310,57 +315,47 @@ class HerbivoreClass:
                  # Supplied relative condition: %f.  Calculated relative
                  # condition: %f. % (BC, calc_BC)
 
-    def update(
-            self, delta_days, conception_month=None, birth_month=None,
-            weaning_month=None):
+    def update(self, model_step):
         """Update reproductive status, days since conception, days since birth,
         and weight including conceptus.
 
         Parameters:
-            delta_days (float): number of days in a model timestep
-            conception_month (bool): do breeding females become pregnant during
-                this timestep?
-            birth_month (bool): do breeding females give birth and begin to
-                lactate during this timestep?
-            weaning_month (bool): do breeding females cease lactation during
-                this timestep?  TODO: does weaning necessarily coincide with conception?
+            model step (int): timestep of the model relative to beginning month
 
         Modifies:
             reproductive status, age of young, time since conception, and
-                weight of a the herbivore class
+                weight of the herbivore class if it is breeding female sex
 
         Returns:
             None
         """
-        # update time since conception and weight of conceptus
-        # if pregnant or lactating
-        if self.reproductive_status == 'pregnant':
-            self.A_foet = self.A_foet + delta_days
-            RA = self.A_foet / self.FParam.CP1
-            BW = (
-                (1 - self.FParam.CP4 + self.FParam.CP4 *
-                self.Z) * self.FParam.CP15 * self.SRW)
-            W_c_1 = self.FParam.CP5 * BW
-            W_c_2 = math.exp(self.CP6 * (1 - math.exp(self.CP7 * (1 - RA))))
-            W_c = W_c_1 * W_c_2  # equation 62, weight of conceptus
-            self.W = self.Wprev + W_c
-        if self.reproductive_status == 'lactating':
-            self.A_y = self.A_y + delta_days
-
-        # update reproductive status of breeding females
-        if self.sex == 'breeding_female' and conception_month:
-            self.reproductive_status = 'pregnant'
-            self.A_foet = 1
-        if self.sex == 'breeding_female' and birth_month:
-            self.reproductive_status = 'lactating'
-            self.W = self.Wprev
-            self.A_foet = 0
-            self.A_y = 1
-        if self.sex == 'breeding_female' and weaning_month:
-            self.reproductive_status = None
-            self.W = self.Wprev
-            self.A_foet = 0
-            self.A_y = 0
+        if self.sex == 'breeding_female':
+            months_of_pregnancy = 9
+            cycle_month_index = (
+                (model_step - self.conception_step) % self.calving_interval)
+            if cycle_month_index < months_of_pregnancy:
+                self.reproductive_status = 'pregnant'
+                self.A_foet = cycle_month_index * 30 + 1
+                RA = self.A_foet / self.FParam.CP1
+                BW = (
+                    (1 - self.FParam.CP4 + self.FParam.CP4 *
+                        self.Z) * self.FParam.CP15 * self.SRW)
+                W_c_1 = self.FParam.CP5 * BW
+                W_c_2 = math.exp(
+                    self.FParam.CP6 *
+                    (1 - math.exp(self.FParam.CP7 * (1 - RA))))
+                W_c = W_c_1 * W_c_2  # equation 62, weight of conceptus
+                self.W = self.Wprev + W_c
+            elif (cycle_month_index <
+                    (months_of_pregnancy + self.lactation_duration)):
+                self.reproductive_status = 'lactating'
+                self.W = self.Wprev
+                self.A_y = (cycle_month_index - months_of_pregnancy) * 30 + 1
+            else:  # not pregnant or lactating
+                self.reproductive_status = None
+                self.W = self.Wprev
+                self.A_foet = 0
+                self.A_y = 0
 
     def calc_max_intake(self):
         """Calculate the maximum potential daily intake of dry matter (kg) from
@@ -379,11 +374,11 @@ class HerbivoreClass:
         TF = 1.  # ignore effect of temperature on intake
         if self.reproductive_status == 'lactating':
             BCpart = self.BC  # assumed body condition at parturition
-            Mi = herb_class.A_y / self.FParam.CI8
-            WL = self.Z * ((BCpart - self.BC) / herb_class.A_y)
-            if (herb_class.A_y >= self.FParam.CL2 and
+            Mi = self.A_y / self.FParam.CI8
+            WL = self.Z * ((BCpart - self.BC) / self.A_y)
+            if (self.A_y >= self.FParam.CL2 and
                     WL > self.FParam.CI14 *
-                    math.exp(-(self.FParam.CI13 * herb_class.A_y) ** 2)):
+                    math.exp(-(self.FParam.CI13 * self.A_y) ** 2)):
                 LB = (1. - self.FParam.CI12 * WL) / self.FParam.CI13
             else:
                 LB = 1.
@@ -931,6 +926,8 @@ def calc_diet_intermediates(diet, herb_class, prop_legume,
         MEm = (MEm + MEm * 1.15) / 2
     diet_interm.L = (MEItotal / MEm) - 1.
 
+    MEc = 0.
+    Pc = 0.
     if herb_class.reproductive_status == 'pregnant':
         RA = herb_class.A_foet / herb_class.FParam.CP1
         BW = (
@@ -993,7 +990,7 @@ def calc_diet_intermediates(diet, herb_class, prop_legume,
     Dudp = max(herb_class.FParam.CA1, min(herb_class.FParam.CA3 * diet.CPIf -
                herb_class.FParam.CA4, herb_class.FParam.CA2))
     DPLSmcp = herb_class.FParam.CA6 * herb_class.FParam.CA7 * diet_interm.RDPR
-    diet_interm.DPLS = Dudp * UDPI + DPLSmcp  # eq 53: degradable protein leaving the stomach
+    diet_interm.DPLS = Dudp * UDPI + DPLSmcp  # eq 53: digestible protein leaving the stomach
     Pw = 0.
     NEw = 0.
     if herb_class.type in ['sheep', 'camelid']:
