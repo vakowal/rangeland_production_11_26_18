@@ -501,7 +501,7 @@ def find_target_month(add_event, schedule, empirical_date, n_months):
                                   (block['relative_year'] > first_rel_year), ]
     first_year = block.loc[(block['relative_year'] == first_rel_year) &
                                   (block['month'] >= first_rel_month), ]
-    history =  pandas.concat([first_year, intervening_years, empirical_year])
+    history = pandas.concat([first_year, intervening_years, empirical_year])
 
     # fill the grazing history with months where no grazing event was scheduled
     filled_history = fill_schedule(history, first_rel_year, first_rel_month,
@@ -519,8 +519,8 @@ def find_target_month(add_event, schedule, empirical_date, n_months):
 
     # find target month and year where grazing event should be added or removed
     else:
-        candidates = candidates.sort(['relative_year', 'month'],
-                                     ascending=[0, 0])
+        candidates = candidates.sort_values(
+            ['relative_year', 'month'], ascending=[0, 0])
         target_year = candidates.iloc[0]['relative_year']
         target_month = candidates.iloc[0]['month']
 
@@ -535,8 +535,8 @@ def find_target_month(add_event, schedule, empirical_date, n_months):
         events_df = events_df.loc[(
                                   events_df['relative_year'] == target_year), ]
         events_df = events_df.loc[(events_df['month'] <= target_month), ]
-        events_df = events_df.sort(['relative_year', 'month'],
-                                   ascending=[0, 0])
+        events_df = events_df.sort_values(
+            ['relative_year', 'month'], ascending=[0, 0])
         prev_event_month = events_df.iloc[0]['month']
         prev_month = events_df.loc[(events_df['month'] == prev_event_month), ]
         num_events_prev_month = prev_month.shape[0]
