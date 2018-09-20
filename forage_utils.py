@@ -475,6 +475,7 @@ class FeedType:
         self.label = label
         self.green_or_dead = green_or_dead
         self.biomass = biomass  # kg DM per ha: seeds and herbaceous combined
+        self.biomass_avail = 0.  # biomass available to herbivores, kg/ha
         self.digestibility = digestibility  # 0 - 1
         self.crude_protein = crude_protein  # 0 - 1
         if type == 'C3':
@@ -695,7 +696,7 @@ def reduce_demand(diet_dict, stocking_density_dict, available_forage):
     for feed_type in available_forage:
         label_string = '{};{}'.format(feed_type.label,
                                       feed_type.green_or_dead)
-        available = feed_type.biomass
+        available = feed_type.biomass_avail
         demand = 0.
         indiv_demand_dict = {}
         for hclass_label in diet_dict.keys():
@@ -770,12 +771,43 @@ def calc_percent_consumed(available_forage, diet_dict, stocking_density_dict):
     return consumed_dict
 
 
+def restrict_available_forage(available_forage, management_threshold):
+    """Reduce forage available for grazing.
+
+    The management threshold specifies the biomass that must be left
+    after herbivore offtake. Calculate the forage available for offtake by
+    herbivores according to its relative availability, restricting it to be
+    below the management threshold if necessary.
+
+    Parameters:
+        available_forage (list): list of class FeedType, where each FeedType
+            is characterized by its standing biomass and biomass available
+            to herbivores for offtake
+        management_threshold (float): biomass (kg/ha) required to be left
+            standing after offtake by herbivores
+
+    Returns:
+        modified available_forage, a list of class FeedType
+    """
+    sum_biomass = 0.
+    for feed_type in available_forage:
+        sum_biomass += feed_type.biomass
+
+    actually_available = max(sum_biomass - management_threshold, 0)
+    for feed_type in available_forage:
+        feed_type.biomass_avail = (
+            feed_type.rel_availability * actually_available)
+    return available_forage
+
+
 def update_feed_types(grass_list, available_forage):
     """Calculate percent growth from previous and current CENTURY outputs, use
-    this to update biomass in terms of simulation units (kg/ha)."""
+    this to update biomass and relative availability in terms of simulation
+    units (kg/ha)."""
 
     matched_g = []
     matched_d = []
+    sum_biomass = 0.
     for grass in grass_list:
         perc_grow_g = (grass['green_gm2'] - grass['prev_g_gm2']) / grass['prev_g_gm2']
         perc_grow_d = (grass['dead_gm2'] - grass['prev_d_gm2']) / grass['prev_d_gm2']
@@ -796,6 +828,7 @@ def update_feed_types(grass_list, available_forage):
                     er = "Error: 'green' or 'dead' expected"
                     print er
                     sys.exit(er)
+            sum_biomass += feed_type.biomass
         if grass['label'] not in matched_g:
             er = "Error: grass type not found in live biomass list"
             print er
@@ -804,6 +837,8 @@ def update_feed_types(grass_list, available_forage):
             er = "Error: grass type not found in dead biomass list"
             print er
             sys.exit(er)
+    for feed_type in available_forage:
+        feed_type.rel_availability = feed_type.biomass / sum_biomass
     return available_forage
 
 
@@ -840,48 +875,6 @@ def calc_feed_types(grass_list):
     return forage
 
 
-def calc_forage_classes(Bgreen, Bdead, DMDgreen, DMDdead):
-    """Distribute available forage among 6 pools of fixed average digestibility
-    ranging from 0.3 to 0.8.  Then, calculate relative availability of forage
-    in each pool (i.e., proportion of total forage available that is represented
-    by each pool).  This process follows Freer et al 2012 in assuming that
-    available forage is described by the user as biomass of green and dead
-    vegetation, and their respective digestibilities; all grass is assumed to be
-    of one type, either C3 or C4.  Thus this doesn't account for multiple
-    forage types.
-
-    All equations from Freer et al 2012."""
-    # this method doesn't work with forages below 0.5 green DMD or 0.3
-    # dead DMD
-    # This method has been replaced by calc_feed_types, which allows the user
-    # to specify forage types explicitly
-    x = (DMDgreen - 0.5) / 0.3
-    y = (DMDdead - 0.3) / 0.4
-    D_list = [0.8, 0.7, 0.6, 0.5, 0.4, 0.3]  # a priori
-    Bgreen_list = [x ** 3]
-    Bgreen_list.append(3. * x ** 2. * (1. - x))
-    Bgreen_list.append(3. * x * (1. - x) ** 2.)
-    Bgreen_list.append((1. - x) ** 3.)
-    Bgreen_list.append(0)
-    Bgreen_list.append(0)
-    Bdead_list = [0]
-    Bdead_list.append(y ** 4.)
-    Bdead_list.append(4. * y ** 3. * (1. - y))
-    Bdead_list.append(6. * y ** 2. * (1. - y) ** 2.)
-    Bdead_list.append(4. * y * (1. - y) ** 3.)
-    Bdead_list.append((1. - y) ** 4.)
-    forage = []
-    sum_biomass = 0.
-    for d in range(0, 6):
-        biomass = Bgreen * Bgreen_list[d] + Bdead * Bdead_list[d]
-        digestibility = D_list[d]
-        forage.append(FeedType(biomass, digestibility))
-        sum_biomass += biomass
-    for d in range(0, 6):
-        forage[d].rel_availability = forage[d].biomass / sum_biomass
-    return forage
-
-
 def calc_diet_intermediates(diet, herb_class, prop_legume,
                             DOY, site=None, supp=None):
     """This mess is necessary to calculate intermediate values that are used
@@ -901,14 +894,17 @@ def calc_diet_intermediates(diet, herb_class, prop_legume,
     if site is None:
         site = SiteInfo(1, 0)
     diet_interm = DietIntermediates()
-    if diet.If == 0. and diet.Is == 0.:
-        return diet_interm
+    # if diet.If == 0. and diet.Is == 0.:
+        # return diet_interm
 
     MEIf = (17.0 * diet.DMDf - 2) * diet.If  # eq 31: herbage
     MEIs = (13.3 * supp.DMD + 23.4 * supp.EE + 1.32) * diet.Is  # eq 32
     FMEIs = (13.3 * supp.DMD + 1.32) * diet.Is  # eq 32, supp.EE = 0
     MEItotal = MEIf + MEIs  # assuming no intake of milk
-    M_per_Dforage = MEIf / diet.If
+    try:
+        M_per_Dforage = MEIf / diet.If
+    except ZeroDivisionError:
+        M_per_Dforage = 0
     kl = herb_class.FParam.CK5 + herb_class.FParam.CK6 * M_per_Dforage  # eq 34
     km = (herb_class.FParam.CK1 + herb_class.FParam.CK2 * M_per_Dforage)  # eq 33 efficiency of energy use for maintenance
     Emove = herb_class.FParam.CM16 * herb_class.D * herb_class.W

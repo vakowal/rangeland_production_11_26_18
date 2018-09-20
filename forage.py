@@ -45,8 +45,8 @@ def execute(args):
             where month 0 is the first month of the simulation
         args['density_series'] - (optional) stocking density by month, where
             month 0 is the first month of the simulation
-        args['mgmt_threshold'] - management threshold, the percent of initial
-            biomass that must remain (0:1)
+        args['mgmt_threshold'] - management threshold (kg/ha), residual biomass
+            that is required to remain, limiting herbivore offtake
         args['input_dir'] - local file directory containing inputs to run
             CENTURY
         args['century_dir'] - local file directory containing the executable
@@ -292,6 +292,8 @@ def execute(args):
             else:
                 available_forage = forage.update_feed_types(
                     grass_list, available_forage)
+            available_forage = forage.restrict_available_forage(
+                available_forage, args['mgmt_threshold'])
             results_dict['step'].append(step)
             results_dict['year'].append(year)
             results_dict['month'].append(month)
@@ -306,12 +308,6 @@ def execute(args):
                     feed_type.calc_digestibility_from_protein(
                         args['digestibility_flag'])
 
-            total_biomass = forage.calc_total_biomass(available_forage)
-            if step == 0:
-                # threshold biomass, amount of biomass required to be left
-                # standing (kg per ha)
-                threshold_biomass = (
-                    total_biomass * float(args[u'mgmt_threshold']))
             diet_dict = {}
             for herb_class in herbivore_list:
                 if (args['grz_months'] is not None and step not in
@@ -352,17 +348,14 @@ def execute(args):
                 diet_dict[herb_class.label] = diet
             forage.reduce_demand(
                 diet_dict, stocking_density_dict, available_forage)
+            total_intake_step = forage.calc_total_intake(
+                diet_dict, stocking_density_dict)
             if args['diet_verbose']:
                 # save diet_dict across steps to be written out later
                 master_diet_dict[step] = diet_dict
                 diet_segregation = forage.calc_diet_segregation(diet_dict)
                 diet_segregation_dict['step'].append(step)
                 diet_segregation_dict['segregation'].append(diet_segregation)
-            total_intake_step = forage.calc_total_intake(
-                diet_dict, stocking_density_dict)
-            if (total_biomass - total_intake_step) < threshold_biomass:
-                raise RuntimeError(
-                    "Forage consumed violates management threshold")
             for herb_class in herbivore_list:
                 diet = diet_dict[herb_class.label]
                 # if herb_class.type != 'hindgut_fermenter':
