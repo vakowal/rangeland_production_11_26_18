@@ -375,18 +375,12 @@ class HerbivoreClass:
         if self.reproductive_status == 'lactating':
             BCpart = self.BC  # assumed body condition at parturition
             Mi = self.A_y / self.FParam.CI8
-            WL = self.Z * ((BCpart - self.BC) / self.A_y)
-            if (self.A_y >= self.FParam.CL2 and
-                    WL > self.FParam.CI14 *
-                    math.exp(-(self.FParam.CI13 * self.A_y) ** 2)):
-                LB = (1. - self.FParam.CI12 * WL) / self.FParam.CI13
-            else:
-                LB = 1.
+            LA = 1. - self.FParam.CI15 + self.FParam.CI15 * BCpart
             WMpeak = self.FParam.CI11 * self.SRW  # assumed expected milk yield at peak lactation (kg/day)
             LC = 1. + self.FParam.CI10 * ((WMpeak - self.FParam.CI11 *
                                          self.SRW)/self.FParam.CI11 * self.SRW)
             LF = 1. + self.FParam.CI19 * Mi ** self.FParam.CI9 * math.exp(
-                                          self.FParam.CI9 * (1 - Mi)) * LC * LB
+                                          self.FParam.CI9 * (1 - Mi)) * LA * LB
         else:
             LF = 1.  # assume any lactating animals do not have young (eq 8)
         max_intake = (self.FParam.CI1 * self.SRW * self.Z * (self.FParam.CI2 -
@@ -639,7 +633,7 @@ def diet_selection_t2(ZF, HR, prop_legume, supp_available, Imax, FParam,
     sum_Rw = sum(R_w)
     for f_index in range(len(available_forage)):
         R_w[f_index] = (R_w[f_index] / sum_Rw) * sum(R)
-    Imax = 11.8 / sum(R_w)  # forcing intake of one Animal Unit, Ucross
+    # Imax = 11.8 / sum(R_w)  # forcing intake of one Animal Unit, Ucross
     for f_index in range(len(available_forage)):
         I.append(Imax * R_w[f_index])  # eq 27
         diet_selected.DMDf += (I[f_index] *

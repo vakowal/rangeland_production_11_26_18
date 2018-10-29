@@ -362,7 +362,6 @@ def execute(args):
                 diet_interm = forage.calc_diet_intermediates(
                     diet, herb_class, args[u'prop_legume'], args[u'DOY'], site,
                     supp)
-                # TODO revise final dietary outputs here
                 results_dict[herb_class.label + 'MEItotal'].append(
                     diet_interm.MEItotal)
                 results_dict[herb_class.label + 'DPLS'].append(
