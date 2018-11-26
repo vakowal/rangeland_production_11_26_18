@@ -112,10 +112,10 @@ def execute(args):
     forage.check_initial_biomass(grass_list)
     results_dict = {'step': [], 'year': [], 'month': []}
     for herb_class in herbivore_list:
-        results_dict[herb_class.label + 'MEItotal'] = []
-        results_dict[herb_class.label + 'DPLS'] = []
-        results_dict[herb_class.label + 'E_req'] = []
-        results_dict[herb_class.label + 'P_req'] = []
+        results_dict[herb_class.label + '_MEItotal'] = []
+        results_dict[herb_class.label + '_DPLS'] = []
+        results_dict[herb_class.label + '_E_req'] = []
+        results_dict[herb_class.label + '_P_req'] = []
         results_dict[herb_class.label + '_intake_forage_per_indiv_kg'] = []
     for grass in grass_list:
         results_dict[grass['label'] + '_green_kgha'] = []
@@ -233,10 +233,10 @@ def execute(args):
     results_dict['month'].append(month)
     results_dict['total_offtake'].append('NA')
     for herb_class in herbivore_list:
-        results_dict[herb_class.label + 'MEItotal'].append('NA')
-        results_dict[herb_class.label + 'DPLS'].append('NA')
-        results_dict[herb_class.label + 'E_req'].append('NA')
-        results_dict[herb_class.label + 'P_req'].append('NA')
+        results_dict[herb_class.label + '_MEItotal'].append('NA')
+        results_dict[herb_class.label + '_DPLS'].append('NA')
+        results_dict[herb_class.label + '_E_req'].append('NA')
+        results_dict[herb_class.label + '_P_req'].append('NA')
         results_dict[herb_class.label +
                      '_intake_forage_per_indiv_kg'].append('NA')
     try:
@@ -362,13 +362,13 @@ def execute(args):
                 diet_interm = forage.calc_diet_intermediates(
                     diet, herb_class, args[u'prop_legume'], args[u'DOY'], site,
                     supp)
-                results_dict[herb_class.label + 'MEItotal'].append(
+                results_dict[herb_class.label + '_MEItotal'].append(
                     diet_interm.MEItotal)
-                results_dict[herb_class.label + 'DPLS'].append(
+                results_dict[herb_class.label + '_DPLS'].append(
                     diet_interm.DPLS)
-                results_dict[herb_class.label + 'E_req'].append(
+                results_dict[herb_class.label + '_E_req'].append(
                     diet_interm.MEm + diet_interm.MEc + diet_interm.MEl)
-                results_dict[herb_class.label + 'P_req'].append(
+                results_dict[herb_class.label + '_P_req'].append(
                     diet_interm.Pm + diet_interm.Pc + diet_interm.Pl)
                 results_dict[
                     herb_class.label + '_intake_forage_per_indiv_kg'].append(
