@@ -376,13 +376,10 @@ class HerbivoreClass:
             BCpart = self.BC  # assumed body condition at parturition
             Mi = self.A_y / self.FParam.CI8
             LA = 1. - self.FParam.CI15 + self.FParam.CI15 * BCpart
-            WMpeak = self.FParam.CI11 * self.SRW  # assumed expected milk yield at peak lactation (kg/day)
-            LC = 1. + self.FParam.CI10 * ((WMpeak - self.FParam.CI11 *
-                                         self.SRW)/self.FParam.CI11 * self.SRW)
             LF = 1. + self.FParam.CI19 * Mi ** self.FParam.CI9 * math.exp(
-                                          self.FParam.CI9 * (1 - Mi)) * LA * LB
+                                          self.FParam.CI9 * (1 - Mi)) * LA
         else:
-            LF = 1.  # assume any lactating animals do not have young (eq 8)
+            LF = 1.  # assume any lactating animals are suckling young (eq 8)
         max_intake = (self.FParam.CI1 * self.SRW * self.Z * (self.FParam.CI2 -
                       self.Z) * CF * YF * TF * LF)  # eq 2
         return max_intake

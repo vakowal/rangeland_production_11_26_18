@@ -30,6 +30,7 @@ class FreerParamCattle:
         self.CI12 = 0.15
         self.CI13 = 0.005
         self.CI14 = 0.002
+        self.CI15 = 0.5
         self.CI19 = 0.416
         self.CI20 = 1.5
         self.CR1 = 0.8
