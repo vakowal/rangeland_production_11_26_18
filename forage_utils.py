@@ -984,7 +984,7 @@ def calc_diet_intermediates(diet, herb_class, prop_legume,
         AF = herb_class.FParam.CW5 + (1-herb_class.FParam.CW5)*(1-math.exp(
                                          -herb_class.FParam.CW12*herb_class.A))
         DLF = 1 + herb_class.FParam.CW6  # assume day length = 12
-        DPLSw = max(0., DPLS - herb_class.FParam.CW9*diet_interm.Pl)
+        DPLSw = max(0., diet_interm.DPLS - herb_class.FParam.CW9*diet_interm.Pl)
         MEw = max(0., MEItotal - (MEl + MEc))
         Pw = min(herb_class.FParam.CW7*(herb_class.SFW/herb_class.SRW)*AF*DLF*\
                  DPLSw, herb_class.FParam.CW8*(herb_class.SFW/herb_class.SRW)*\

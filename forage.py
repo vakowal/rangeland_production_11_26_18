@@ -367,9 +367,11 @@ def execute(args):
                 results_dict[herb_class.label + '_DPLS'].append(
                     diet_interm.DPLS)
                 results_dict[herb_class.label + '_E_req'].append(
-                    diet_interm.MEm + diet_interm.MEc + diet_interm.MEl)
+                    diet_interm.MEm + diet_interm.MEc + diet_interm.MEl +
+                    diet_interm.NEw)
                 results_dict[herb_class.label + '_P_req'].append(
-                    diet_interm.Pm + diet_interm.Pc + diet_interm.Pl)
+                    diet_interm.Pm + diet_interm.Pc + diet_interm.Pl +
+                    diet_interm.Pw)
                 results_dict[
                     herb_class.label + '_intake_forage_per_indiv_kg'].append(
                         forage.convert_daily_to_step(diet.If))
