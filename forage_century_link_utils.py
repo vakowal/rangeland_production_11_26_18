@@ -47,6 +47,8 @@ def launch_CENTURY_subprocess(bat_file):
                     error = "CENTURY log file is empty"
                 time.sleep(1.0)
                 tries = tries + 1
+    if error == ['', 'Model is running...']:  # special case?
+        return
     raise Exception(error)
 
 
@@ -731,8 +733,11 @@ def get_site_weather_files(schedule_file, input_dir):
                     s_file = os.path.join(input_dir, s_name)
             if '.wth' in line:
                 if w_file != 'NA':
-                    er = "Error: two weather files found in schedule file"
-                    raise Exception(er)
+                    second_w_name = re.search(
+                        '(.+?).wth', line).group(1) + '.wth'
+                    if second_w_name != w_name:
+                        er = "Error: two weather files found in schedule file"
+                        raise Exception(er)
                 else:
                     w_name = re.search('(.+?).wth', line).group(1) + '.wth'
                     w_file = os.path.join(input_dir, w_name)
